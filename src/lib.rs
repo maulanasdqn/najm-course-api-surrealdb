@@ -1,9 +1,9 @@
 pub mod apps;
+pub mod entities;
 pub mod libs;
 pub mod utils;
 
-pub use apps::v1;
-pub use apps::v2;
-
-pub use libs::axum;
-pub use libs::seaorm;
+pub use apps::*;
+pub use entities::*;
+pub use libs::*;
+pub use utils::*;

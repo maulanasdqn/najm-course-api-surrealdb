@@ -1,9 +1,0 @@
-[env]
-RUST_LOG="imphnen-cms-api=debug"
-RUST_ENV="development"
-
-[profile.release]
-lto = "fat"
-codegen-units = 1
-panic = "abort"
-opt-level = "z"
