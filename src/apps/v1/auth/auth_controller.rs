@@ -1,6 +1,11 @@
-use super::{mutation_login, AuthLoginRequestDto};
-use axum::{response::Response, Json};
+use axum::{response::IntoResponse, Extension, Json};
 
-pub async fn post_login(Json(payload): Json<AuthLoginRequestDto>) -> Response {
-	mutation_login(payload).await
+use super::{mutation_login, AuthLoginRequestDto};
+use crate::AppState;
+
+pub async fn post_login(
+	Extension(state): Extension<AppState>,
+	Json(payload): Json<AuthLoginRequestDto>,
+) -> impl IntoResponse {
+	mutation_login(payload, &state).await
 }

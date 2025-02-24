@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use surrealdb::{engine::remote::ws::Client, Surreal};
 use utoipa::{IntoParams, ToSchema};
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -34,4 +35,13 @@ pub struct ResponseSuccessDto<T: Serialize> {
 pub struct ResponseListSuccessDto<T: Serialize> {
 	pub data: T,
 	pub meta: Option<MetaResponseDto>,
+}
+
+pub type SurrealClient = Surreal<Client>;
+pub type RedisClient = redis::Client;
+
+#[derive(Clone)]
+pub struct AppState {
+	pub surrealdb: SurrealClient,
+	pub redisdb: RedisClient,
 }

@@ -1,6 +1,6 @@
-use imphnen_cms_be::{apps, libs::axum_init};
+use imphnen_cms_be::{apps, axum_init};
 
 #[tokio::main]
 async fn main() {
-	axum_init(apps).await;
+	axum_init(|db, redis| async { apps(db, redis).await }).await;
 }
