@@ -4,6 +4,7 @@
 
 # Nix
 /.direnv
+/Cargo.nix
 
 # Environment
 .envrc
