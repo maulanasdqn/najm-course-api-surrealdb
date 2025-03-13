@@ -1,31 +1,32 @@
+use super::Env;
 use axum::http::StatusCode;
 use chrono::{Duration, TimeDelta, Utc};
 use jsonwebtoken::{
 	decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation,
 };
 use serde::{Deserialize, Serialize};
-use std::env;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokenSub {
+	pub email: String,
+	pub role_name: String,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
 	pub exp: usize,
 	pub iat: usize,
-	pub email: String,
+	pub sub: TokenSub,
 }
 
-pub fn encode_access_token(email: &str) -> Result<String, StatusCode> {
-	let secret: String = env::var("ACCESS_TOKEN_SECRET")
-		.unwrap_or("this-is-secret".to_string())
-		.to_string();
+pub fn encode_access_token(sub: TokenSub) -> Result<String, StatusCode> {
+	let env = Env::new();
+	let secret: String = env.access_token_secret;
 	let now = Utc::now();
 	let expire: TimeDelta = Duration::minutes(15);
 	let exp: usize = (now + expire).timestamp() as usize;
 	let iat: usize = now.timestamp() as usize;
-	let claim = Claims {
-		iat,
-		exp,
-		email: email.to_string(),
-	};
+	let claim = Claims { iat, exp, sub };
 	encode(
 		&Header::default(),
 		&claim,
@@ -37,9 +38,8 @@ pub fn encode_access_token(email: &str) -> Result<String, StatusCode> {
 pub fn decode_access_token(
 	jwt_token: &str,
 ) -> Result<TokenData<Claims>, StatusCode> {
-	let secret = env::var("ACCESS_TOKEN_SECRET")
-		.unwrap_or("this-is-secret".to_string())
-		.to_string();
+	let env = Env::new();
+	let secret: String = env.access_token_secret;
 	let result: Result<TokenData<Claims>, StatusCode> = decode(
 		&jwt_token,
 		&DecodingKey::from_secret(secret.as_ref()),
@@ -49,19 +49,14 @@ pub fn decode_access_token(
 	result
 }
 
-pub fn encode_refresh_token(email: &str) -> Result<String, StatusCode> {
-	let secret: String = env::var("REFRESH_TOKEN_SECRET")
-		.unwrap_or("this-is-secret".to_string())
-		.to_string();
+pub fn encode_refresh_token(sub: TokenSub) -> Result<String, StatusCode> {
+	let env = Env::new();
+	let secret: String = env.refresh_token_secret;
 	let now = Utc::now();
 	let expire: TimeDelta = Duration::days(1);
 	let exp: usize = (now + expire).timestamp() as usize;
 	let iat: usize = now.timestamp() as usize;
-	let claim = Claims {
-		iat,
-		exp,
-		email: email.to_string(),
-	};
+	let claim = Claims { iat, exp, sub };
 	encode(
 		&Header::default(),
 		&claim,
@@ -73,9 +68,8 @@ pub fn encode_refresh_token(email: &str) -> Result<String, StatusCode> {
 pub fn decode_refresh_token(
 	jwt_token: &str,
 ) -> Result<TokenData<Claims>, StatusCode> {
-	let secret = env::var("REFRESH_TOKEN_SECRET")
-		.unwrap_or("this-is-secret".to_string())
-		.to_string();
+	let env = Env::new();
+	let secret: String = env.refresh_token_secret;
 	let result: Result<TokenData<Claims>, StatusCode> = decode(
 		&jwt_token,
 		&DecodingKey::from_secret(secret.as_ref()),

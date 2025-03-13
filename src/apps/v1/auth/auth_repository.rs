@@ -1,107 +1,32 @@
-use super::{auth_dto::AuthLoginRequestDto, AuthRegisterRequestDto};
-use crate::{
-	common_response, hash_password, success_response, v1::UsersItemDto, AppState,
-	ResponseSuccessDto,
-};
-use axum::{http::StatusCode, response::Response};
-use serde_json;
+use crate::{v1::UsersItemDto, AppState};
+use std::error::Error;
 
-const USERS_KEY: &str = "users";
+use super::AuthRegisterRequestDto;
 
-pub async fn mutation_login(
-	params: AuthLoginRequestDto,
+pub async fn query_user_by_email(
+	email: String,
 	state: &AppState,
-) -> Response {
-	let user: Option<AuthLoginRequestDto> = match state
-		.surrealdb
-		.select((USERS_KEY, params.email.as_str()))
-		.await
-	{
-		Ok(user) => user,
-		Err(err) => {
-			return common_response(
-				StatusCode::INTERNAL_SERVER_ERROR,
-				&err.to_string(),
-			);
-		}
-	};
+) -> Result<UsersItemDto, Box<dyn Error>> {
+	let db = &state.surrealdb;
 
-	let mut redis_conn = match state.redisdb.get_connection() {
-		Ok(conn) => conn,
-		Err(err) => {
-			return common_response(
-				StatusCode::INTERNAL_SERVER_ERROR,
-				&err.to_string(),
-			);
-		}
-	};
+	let mut result = db
+		.query("SELECT * FROM app_users WHERE email = $email LIMIT 1;")
+		.bind(("email", email.clone()))
+		.await?;
 
-	let user_json = match serde_json::to_string(&user) {
-		Ok(json) => json,
-		Err(err) => {
-			return common_response(
-				StatusCode::INTERNAL_SERVER_ERROR,
-				&err.to_string(),
-			);
-		}
-	};
+	let user: Option<UsersItemDto> = result.take(0)?;
 
-	if let Err(err) = redis::cmd("SET")
-		.arg("users_data")
-		.arg(user_json)
-		.query::<()>(&mut redis_conn)
-	{
-		return common_response(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string());
-	}
-
-	let response = ResponseSuccessDto { data: params };
-
-	success_response(response)
+	user.ok_or_else(|| format!("User not found for email: {}", email).into())
 }
 
-pub async fn mutation_register(
-	params: AuthRegisterRequestDto,
+pub async fn query_create_user(
+	data: AuthRegisterRequestDto,
 	state: &AppState,
-) -> Response {
-	let user_key = format!("{}:{}", USERS_KEY, params.email);
+) -> Result<String, Box<dyn Error>> {
+	let db = &state.surrealdb;
 
-	let existing_user: Option<UsersItemDto> =
-		match state.surrealdb.select(&user_key).await {
-			Ok(user) => user,
-			Err(err) => {
-				return common_response(
-					StatusCode::INTERNAL_SERVER_ERROR,
-					&err.to_string(),
-				);
-			}
-		};
+	let _record: Option<UsersItemDto> =
+		db.create(("app_users", &data.email)).content(data).await?;
 
-	if existing_user.is_some() {
-		return common_response(StatusCode::CONFLICT, "User already exists");
-	}
-
-	let hashed_password = hash_password(&params.password);
-
-	let created_user: AuthLoginRequestDto =
-		match state.surrealdb.create(&user_key, &params).await {
-			Ok(user) => Some(user),
-			Err(err) => {
-				return common_response(
-					StatusCode::INTERNAL_SERVER_ERROR,
-					&err.to_string(),
-				);
-			}
-		};
-
-	let user_json = match serde_json::to_string(&created_user) {
-		Ok(json) => json,
-		Err(err) => {
-			return common_response(
-				StatusCode::INTERNAL_SERVER_ERROR,
-				&err.to_string(),
-			);
-		}
-	};
-
-	common_response(StatusCode::CREATED, "Success Register User")
+	Ok("Success create user".into())
 }

@@ -8,10 +8,14 @@ pub struct AuthLoginRequestDto {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-pub struct AuthRegisterRequestDto {
-	pub email: String,
-	pub password: String,
-	pub fullname: String,
+pub struct AuthLoginResponsetDto {
+	pub token: TokenDto,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct TokenDto {
+	pub access_token: String,
+	pub refresh_token: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
