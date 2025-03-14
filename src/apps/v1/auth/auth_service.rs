@@ -1,64 +1,115 @@
 use axum::{http::StatusCode, response::Response};
+use redis::Commands;
 
 use super::{
-	query_create_user, query_user_by_email, AuthLoginRequestDto,
-	AuthRegisterRequestDto,
+	AuthLoginRequestDto, AuthLoginResponsetDto, AuthRegisterRequestDto,
+	AuthRepository, TokenDto,
 };
-use crate::{common_response, hash_password, verify_password, AppState};
+use crate::{
+	common_response, encode_access_token, encode_refresh_token, hash_password,
+	success_response, v1::UsersItemDto, verify_password, AppState,
+	ResponseSuccessDto, TokenSub,
+};
 
-pub async fn mutation_login(
-	payload: AuthLoginRequestDto,
-	state: &AppState,
-) -> Response {
-	match query_user_by_email(payload.email, state).await {
-		Ok(user) => {
-			let is_password_correct =
-				verify_password(&payload.password, &user.password).unwrap_or(false);
+pub struct AuthService;
 
-			if is_password_correct {
-				common_response(
-					StatusCode::BAD_REQUEST,
-					"Email or password not correct",
+impl AuthService {
+	pub async fn mutation_login(
+		payload: AuthLoginRequestDto,
+		state: &AppState,
+	) -> Response {
+		let repository = AuthRepository::new(state);
+		match repository.query_user_by_email(payload.email.clone()).await {
+			Ok(user) => {
+				let is_password_correct =
+					verify_password(&payload.password, &user.password)
+						.unwrap_or(false);
+
+				if is_password_correct {
+					common_response(
+						StatusCode::BAD_REQUEST,
+						"Email or password not correct",
+					);
+				}
+
+				let access_token = encode_access_token(TokenSub {
+					email: payload.email.clone(),
+					role_name: "Admin".to_string(),
+				});
+
+				let refresh_token = encode_refresh_token(TokenSub {
+					email: payload.email.clone(),
+					role_name: "Admin".to_string(),
+				});
+
+				let response = ResponseSuccessDto {
+					data: AuthLoginResponsetDto {
+						user: UsersItemDto {
+							fullname: user.fullname.clone(),
+							email: user.email.clone(),
+						},
+						token: TokenDto {
+							access_token: access_token.unwrap(),
+							refresh_token: refresh_token.unwrap(),
+						},
+					},
+				};
+
+				let redis_key =
+					format!("authenticated_users_data:{}", payload.email.clone());
+
+				match state.redisdb.get_connection().and_then(|mut conn| {
+					conn.set_ex::<_, String, ()>(
+						&redis_key,
+						serde_json::to_string(&user).unwrap_or_default(),
+						86400,
+					)
+				}) {
+					Ok(_) => success_response(response),
+					Err(err) => common_response(
+						StatusCode::INTERNAL_SERVER_ERROR,
+						&format!("Redis storage failed: {}", err),
+					),
+				}
+			}
+			Err(err) => common_response(StatusCode::UNAUTHORIZED, &err.to_string()),
+		}
+	}
+
+	pub async fn mutation_register(
+		payload: AuthRegisterRequestDto,
+		state: &AppState,
+	) -> Response {
+		let repository = AuthRepository::new(state);
+		if repository
+			.query_user_by_email(payload.email.clone())
+			.await
+			.is_ok()
+		{
+			return common_response(StatusCode::BAD_REQUEST, "User already exists");
+		}
+
+		let hashed_password = match hash_password(&payload.password) {
+			Ok(hash) => hash,
+			Err(_) => {
+				return common_response(
+					StatusCode::INTERNAL_SERVER_ERROR,
+					"Failed to hash password",
 				);
 			}
+		};
 
-			common_response(StatusCode::OK, "Success Login")
-		}
-		Err(err) => common_response(StatusCode::UNAUTHORIZED, &err.to_string()),
-	}
-}
+		let new_user = AuthRegisterRequestDto {
+			email: payload.email,
+			password: hashed_password,
+			fullname: payload.fullname,
+		};
 
-pub async fn mutation_register(
-	payload: AuthRegisterRequestDto,
-	state: &AppState,
-) -> Response {
-	if query_user_by_email(payload.email.clone(), state)
-		.await
-		.is_ok()
-	{
-		return common_response(StatusCode::BAD_REQUEST, "User already exists");
-	}
-
-	let hashed_password = match hash_password(&payload.password) {
-		Ok(hash) => hash,
-		Err(_) => {
-			return common_response(
-				StatusCode::INTERNAL_SERVER_ERROR,
-				"Failed to hash password",
-			);
-		}
-	};
-
-	let new_user = AuthRegisterRequestDto {
-		email: payload.email,
-		password: hashed_password,
-		fullname: payload.fullname,
-	};
-
-	match query_create_user(new_user, state).await {
-		Ok(_) => common_response(StatusCode::CREATED, "Registration successful"),
-		Err(err) => {
-			common_response(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string())
+		match repository.query_create_user(new_user).await {
+			Ok(_) => common_response(StatusCode::CREATED, "Registration successful"),
+			Err(err) => {
+				common_response(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string())
+			}
 		}
 	}
 }

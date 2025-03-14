@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+use crate::v1::UsersItemDto;
+
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct AuthLoginRequestDto {
 	pub email: String,
@@ -10,6 +12,7 @@ pub struct AuthLoginRequestDto {
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct AuthLoginResponsetDto {
 	pub token: TokenDto,
+	pub user: UsersItemDto,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]

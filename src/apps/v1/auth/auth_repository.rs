@@ -1,32 +1,45 @@
-use crate::{v1::UsersItemDto, AppState};
+use crate::{v1::UsersItemDto, AppState, ResourceEnum};
 use std::error::Error;
 
 use super::AuthRegisterRequestDto;
 
-pub async fn query_user_by_email(
-	email: String,
-	state: &AppState,
-) -> Result<UsersItemDto, Box<dyn Error>> {
-	let db = &state.surrealdb;
-
-	let mut result = db
-		.query("SELECT * FROM app_users WHERE email = $email LIMIT 1;")
-		.bind(("email", email.clone()))
-		.await?;
-
-	let user: Option<UsersItemDto> = result.take(0)?;
-
-	user.ok_or_else(|| format!("User not found for email: {}", email).into())
+pub struct AuthRepository<'a> {
+	state: &'a AppState,
 }
 
-pub async fn query_create_user(
-	data: AuthRegisterRequestDto,
-	state: &AppState,
-) -> Result<String, Box<dyn Error>> {
-	let db = &state.surrealdb;
+impl<'a> AuthRepository<'a> {
+	pub fn new(state: &'a AppState) -> Self {
+		Self { state }
+	}
 
-	let _record: Option<UsersItemDto> =
-		db.create(("app_users", &data.email)).content(data).await?;
+	pub async fn query_user_by_email(
+		&self,
+		email: String,
+	) -> Result<AuthRegisterRequestDto, Box<dyn Error>> {
+		let db = &self.state.surrealdb;
 
-	Ok("Success create user".into())
+		let result = db.select((ResourceEnum::Users.to_string(), email)).await?;
+
+		match result {
+			Some(user) => Ok(user),
+			None => Err("User not found for email".into()),
+		}
+	}
+
+	pub async fn query_create_user(
+		&self,
+		data: AuthRegisterRequestDto,
+	) -> Result<String, Box<dyn Error>> {
+		let db = &self.state.surrealdb;
+
+		let record: Option<UsersItemDto> = db
+			.create((ResourceEnum::Users.to_string(), &data.email))
+			.content(data)
+			.await?;
+
+		match record {
+			Some(_) => Ok("Success create user".into()),
+			None => Err("Failed to create user".into()),
+		}
+	}
 }

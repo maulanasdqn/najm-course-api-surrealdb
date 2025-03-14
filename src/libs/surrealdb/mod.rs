@@ -2,6 +2,9 @@ use crate::SurrealClient;
 use surrealdb::engine::remote::http::{Client, Http};
 use surrealdb::{Result, Surreal};
 
+pub mod resource;
+pub use resource::*;
+
 pub async fn surrealdb_init() -> Result<SurrealClient> {
 	let db = Surreal::<Client>::init();
 	db.connect::<Http>("localhost:8000").await?;
