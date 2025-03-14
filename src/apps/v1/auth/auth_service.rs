@@ -7,7 +7,7 @@ use super::{
 use crate::{
 	common_response, encode_access_token, encode_refresh_token, hash_password,
 	success_response, v1::UsersItemDto, verify_password, AppState,
-	ResponseSuccessDto, TokenSub,
+	ResponseSuccessDto,
 };
 
 pub struct AuthService;
@@ -31,15 +31,8 @@ impl AuthService {
 					);
 				}
 
-				let access_token = encode_access_token(TokenSub {
-					email: payload.email.clone(),
-					role_name: "Admin".to_string(),
-				});
-
-				let refresh_token = encode_refresh_token(TokenSub {
-					email: payload.email.clone(),
-					role_name: "Admin".to_string(),
-				});
+				let access_token = encode_access_token(payload.email.clone());
+				let refresh_token = encode_refresh_token(payload.email.clone());
 
 				let response = ResponseSuccessDto {
 					data: AuthLoginResponsetDto {

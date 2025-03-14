@@ -7,19 +7,13 @@ use jsonwebtoken::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TokenSub {
-	pub email: String,
-	pub role_name: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
 	pub exp: usize,
 	pub iat: usize,
-	pub sub: TokenSub,
+	pub sub: String,
 }
 
-pub fn encode_access_token(sub: TokenSub) -> Result<String, StatusCode> {
+pub fn encode_access_token(sub: String) -> Result<String, StatusCode> {
 	let env = Env::new();
 	let secret: String = env.access_token_secret;
 	let now = Utc::now();
@@ -49,7 +43,7 @@ pub fn decode_access_token(
 	result
 }
 
-pub fn encode_refresh_token(sub: TokenSub) -> Result<String, StatusCode> {
+pub fn encode_refresh_token(sub: String) -> Result<String, StatusCode> {
 	let env = Env::new();
 	let secret: String = env.refresh_token_secret;
 	let now = Utc::now();
