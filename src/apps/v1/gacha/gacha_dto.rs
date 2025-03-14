@@ -11,6 +11,18 @@ pub struct GachaRequestDto {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct GachaCreateItemRequestDto {
+	pub item_name: String,
+	pub item_image: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct GachaItemResponseDto {
+	pub item_name: String,
+	pub item_image: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct GachaResponseDto {
 	pub transaction_number: String,
 	pub user: UsersItemDto,

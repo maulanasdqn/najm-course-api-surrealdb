@@ -29,10 +29,10 @@ pub async fn auth_middleware(
 
 	let token_data = match decode_access_token(token) {
 		Ok(data) => data,
-		Err(err) => {
+		Err(_) => {
 			return Ok(common_response(
 				StatusCode::UNAUTHORIZED,
-				&format!("Invalid or expired token: {}", &err.to_string()),
+				&format!("Invalid or expired token"),
 			));
 		}
 	};

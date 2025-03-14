@@ -1,4 +1,7 @@
-use super::{GachaRequestDto, GachaResponseDto, GachaSchema};
+use super::{
+	GachaCreateItemRequestDto, GachaItemSchema, GachaRequestDto, GachaResponseDto,
+	GachaSchema,
+};
 use crate::{v1::AuthRepository, AppState, ResourceEnum};
 use anyhow::{bail, Result};
 use surrealdb::sql::{Id, Thing};
@@ -40,7 +43,10 @@ impl<'a> GachaRepository<'a> {
 			Thing::from((ResourceEnum::Users.to_string(), Id::String(user.email)));
 
 		let record: Option<GachaSchema> = db
-			.create((ResourceEnum::Gacha.to_string(), &data.transaction_number))
+			.create((
+				ResourceEnum::GachaClaims.to_string(),
+				&data.transaction_number,
+			))
 			.content(GachaSchema {
 				transaction_number: data.transaction_number.clone(),
 				user: user_thing,
@@ -50,6 +56,26 @@ impl<'a> GachaRepository<'a> {
 		match record {
 			Some(_) => Ok("Gacha successfully created".to_string()),
 			None => bail!("Failed to create gacha record"),
+		}
+	}
+
+	pub async fn query_create_gacha_item(
+		&self,
+		data: GachaCreateItemRequestDto,
+	) -> Result<String> {
+		let db = &self.state.surrealdb;
+
+		let record: Option<GachaItemSchema> = db
+			.create((ResourceEnum::Gacha.to_string(), data.item_name.clone()))
+			.content(GachaItemSchema {
+				item_name: data.item_name.clone(),
+				item_image: data.item_image.clone(),
+			})
+			.await?;
+
+		match record {
+			Some(_) => Ok("Gacha item successfully created".to_string()),
+			None => bail!("Failed to create gacha item record"),
 		}
 	}
 }
