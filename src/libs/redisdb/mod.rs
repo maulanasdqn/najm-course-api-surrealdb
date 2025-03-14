@@ -2,6 +2,9 @@ use super::Env;
 use redis::Client;
 use redis::RedisResult;
 
+pub mod key;
+pub use key::*;
+
 pub async fn redisdb_init() -> RedisResult<Client> {
 	let env = Env::new();
 	let host_name = env.redis_hostname;

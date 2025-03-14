@@ -27,3 +27,10 @@ pub struct AuthRegisterRequestDto {
 	pub password: String,
 	pub fullname: String,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct AuthQueryByEmailResponse {
+	pub email: String,
+	pub fullname: String,
+	pub password: String,
+}

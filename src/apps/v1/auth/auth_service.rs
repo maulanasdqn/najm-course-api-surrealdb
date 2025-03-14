@@ -1,5 +1,4 @@
 use axum::{http::StatusCode, response::Response};
-use redis::Commands;
 
 use super::{
 	AuthLoginRequestDto, AuthLoginResponsetDto, AuthRegisterRequestDto,
@@ -55,22 +54,21 @@ impl AuthService {
 					},
 				};
 
-				let redis_key =
-					format!("authenticated_users_data:{}", payload.email.clone());
-
-				match state.redisdb.get_connection().and_then(|mut conn| {
-					conn.set_ex::<_, String, ()>(
-						&redis_key,
-						serde_json::to_string(&user).unwrap_or_default(),
-						86400,
-					)
-				}) {
-					Ok(_) => success_response(response),
-					Err(err) => common_response(
-						StatusCode::INTERNAL_SERVER_ERROR,
-						&format!("Redis storage failed: {}", err),
-					),
+				if !repository
+					.query_store_user_data(AuthRegisterRequestDto {
+						fullname: user.fullname,
+						password: user.password,
+						email: user.email,
+					})
+					.is_ok()
+				{
+					return common_response(
+						StatusCode::BAD_REQUEST,
+						"Failed to store data",
+					);
 				}
+
+				success_response(response)
 			}
 			Err(err) => common_response(StatusCode::UNAUTHORIZED, &err.to_string()),
 		}

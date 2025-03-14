@@ -11,6 +11,7 @@ pub struct Env {
 	pub smtp_name: String,
 	pub smpt_host: String,
 	pub redis_hostname: String,
+	pub redis_port: u16,
 	pub fe_url: String,
 	pub rust_env: String,
 	pub minio_endpoint: String,
@@ -26,6 +27,10 @@ impl Env {
 				.unwrap_or("3000".to_string())
 				.parse()
 				.unwrap_or(3000),
+			redis_port: env::var("REDIS_PORT")
+				.unwrap_or("5436".to_string())
+				.parse()
+				.unwrap_or(5436),
 			access_token_secret: env::var("ACCESS_TOKEN_SECRET")
 				.unwrap_or("default_access_secret".to_string()),
 			refresh_token_secret: env::var("REFRESH_TOKEN_SECRET")
