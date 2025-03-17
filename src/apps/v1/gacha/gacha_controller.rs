@@ -1,22 +1,23 @@
-use super::{GachaRequestDto, GachaService};
+use super::{GachaClaimRequestDto, GachaService};
 use crate::{v1::GachaCreateItemRequestDto, AppState, MessageResponseDto};
-use axum::{response::IntoResponse, Extension, Json};
+use axum::{http::HeaderMap, response::IntoResponse, Extension, Json};
 
 #[utoipa::path(
     post,
-    path = "/v1/gacha/create",
-    request_body = GachaRequestDto,
+    path = "/v1/gacha/create/claims",
+    request_body = GachaClaimRequestDto,
     responses(
-        (status = 200, description = "Create gacha successful", body = MessageResponseDto),
-        (status = 401, description = "Create gacha failed", body = MessageResponseDto)
+        (status = 200, description = "Create gacha claims successful", body = MessageResponseDto),
+        (status = 401, description = "Create gacha claims failed", body = MessageResponseDto)
     ),
     tag = "Gacha"
 )]
-pub async fn post_create_gacha(
+pub async fn post_create_gacha_claims(
+	header: HeaderMap,
 	Extension(state): Extension<AppState>,
-	Json(payload): Json<GachaRequestDto>,
+	Json(payload): Json<GachaClaimRequestDto>,
 ) -> impl IntoResponse {
-	GachaService::mutation_create_gacha(payload, &state).await
+	GachaService::mutation_create_gacha_claims(payload, &state, header).await
 }
 
 #[utoipa::path(

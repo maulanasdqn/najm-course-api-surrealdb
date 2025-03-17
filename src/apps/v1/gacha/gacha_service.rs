@@ -1,17 +1,31 @@
-use super::{GachaCreateItemRequestDto, GachaRepository, GachaRequestDto};
-use crate::{common_response, AppState};
-use axum::{http::StatusCode, response::Response};
+use super::{GachaClaimRequestDto, GachaCreateItemRequestDto, GachaRepository};
+use crate::{common_response, extract_email, AppState};
+use axum::{
+	http::{HeaderMap, StatusCode},
+	response::Response,
+};
 
 pub struct GachaService;
 
 impl GachaService {
-	pub async fn mutation_create_gacha(
-		payload: GachaRequestDto,
+	pub async fn mutation_create_gacha_claims(
+		payload: GachaClaimRequestDto,
 		state: &AppState,
+		header: HeaderMap,
 	) -> Response {
 		let repository = GachaRepository::new(state);
 
-		match repository.query_create_gacha(payload).await {
+		let email = match extract_email(&header) {
+			Some(email) => email,
+			None => {
+				return common_response(
+					StatusCode::UNAUTHORIZED,
+					"Invalid or expired token",
+				);
+			}
+		};
+
+		match repository.query_create_gacha_claims(payload, email).await {
 			Ok(msg) => common_response(StatusCode::CREATED, &msg),
 			Err(err) => common_response(StatusCode::BAD_REQUEST, &err.to_string()),
 		}

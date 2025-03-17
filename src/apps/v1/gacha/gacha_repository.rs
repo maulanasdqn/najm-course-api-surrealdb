@@ -1,6 +1,6 @@
 use super::{
-	GachaCreateItemRequestDto, GachaItemSchema, GachaRequestDto, GachaResponseDto,
-	GachaSchema,
+	GachaClaimRequestDto, GachaClaimResponseDto, GachaCreateItemRequestDto,
+	GachaItemSchema, GachaSchema,
 };
 use crate::{v1::AuthRepository, AppState, ResourceEnum};
 use anyhow::{bail, Result};
@@ -18,7 +18,7 @@ impl<'a> GachaRepository<'a> {
 	pub async fn query_gacha_by_transaction_number(
 		&self,
 		transaction_number: String,
-	) -> Result<GachaResponseDto> {
+	) -> Result<GachaClaimResponseDto> {
 		let db = &self.state.surrealdb;
 
 		let result = db
@@ -31,13 +31,15 @@ impl<'a> GachaRepository<'a> {
 		}
 	}
 
-	pub async fn query_create_gacha(&self, data: GachaRequestDto) -> Result<String> {
+	pub async fn query_create_gacha_claims(
+		&self,
+		data: GachaClaimRequestDto,
+		email: String,
+	) -> Result<String> {
 		let auth_repository = AuthRepository::new(self.state);
 		let db = &self.state.surrealdb;
 
-		let user = auth_repository
-			.query_user_by_email(data.email.clone())
-			.await?;
+		let user = auth_repository.query_user_by_email(email).await?;
 
 		let user_thing =
 			Thing::from((ResourceEnum::Users.to_string(), Id::String(user.email)));
@@ -54,12 +56,32 @@ impl<'a> GachaRepository<'a> {
 			.await?;
 
 		match record {
-			Some(_) => Ok("Gacha successfully created".to_string()),
-			None => bail!("Failed to create gacha record"),
+			Some(_) => Ok("Gacha claims successfully created".to_string()),
+			None => bail!("Failed to create gacha claims"),
 		}
 	}
 
 	pub async fn query_create_gacha_item(
+		&self,
+		data: GachaCreateItemRequestDto,
+	) -> Result<String> {
+		let db = &self.state.surrealdb;
+
+		let record: Option<GachaItemSchema> = db
+			.create((ResourceEnum::Gacha.to_string(), data.item_name.clone()))
+			.content(GachaItemSchema {
+				item_name: data.item_name.clone(),
+				item_image: data.item_image.clone(),
+			})
+			.await?;
+
+		match record {
+			Some(_) => Ok("Gacha item successfully created".to_string()),
+			None => bail!("Failed to create gacha item record"),
+		}
+	}
+
+	pub async fn query_create_gacha_roll(
 		&self,
 		data: GachaCreateItemRequestDto,
 	) -> Result<String> {

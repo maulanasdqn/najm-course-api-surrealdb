@@ -13,7 +13,10 @@ pub use gacha_service::*;
 
 pub fn gacha_router() -> Router {
 	Router::new()
-		.route("/create", post(gacha_controller::post_create_gacha))
+		.route(
+			"/create/claims",
+			post(gacha_controller::post_create_gacha_claims),
+		)
 		.route(
 			"/create/item",
 			post(gacha_controller::post_create_gacha_item),
