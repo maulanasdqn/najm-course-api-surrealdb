@@ -1,5 +1,9 @@
 use crate::{
-	v1::{auth, AuthLoginRequestDto, AuthLoginResponsetDto},
+	v1::{
+		auth, gacha, AuthLoginRequestDto, AuthLoginResponsetDto,
+		GachaCreateClaimRequestDto, GachaCreateItemRequestDto,
+		GachaCreateRollRequestDto,
+	},
 	MessageResponseDto, MetaRequestDto, MetaResponseDto, ResponseSuccessDto,
 };
 
@@ -12,17 +16,22 @@ use utoipa::{
 #[openapi(
     paths(
      auth::auth_controller::post_login,
-     auth::auth_controller::post_register
+     auth::auth_controller::post_register,
+     gacha::gacha_controller::post_create_gacha_claim,
+     gacha::gacha_controller::post_create_gacha_item,
+     gacha::gacha_controller::post_create_gacha_roll,
     ),
     components(
         schemas(
            MetaRequestDto,
            MetaResponseDto,
            MessageResponseDto,
-           
            AuthLoginRequestDto,
            AuthLoginResponsetDto,
            ResponseSuccessDto<AuthLoginResponsetDto>,
+           GachaCreateClaimRequestDto,
+           GachaCreateItemRequestDto,
+           GachaCreateRollRequestDto
         )
     ),
     info(

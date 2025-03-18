@@ -4,7 +4,7 @@ use utoipa::ToSchema;
 use crate::v1::UsersItemDto;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-pub struct GachaClaimRequestDto {
+pub struct GachaCreateClaimRequestDto {
 	pub transaction_number: String,
 }
 
@@ -16,7 +16,7 @@ pub struct GachaCreateItemRequestDto {
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct GachaCreateRollRequestDto {
-	pub item_id: String,
+	pub item_name: String,
 	pub weight: String,
 }
 
@@ -30,4 +30,9 @@ pub struct GachaItemResponseDto {
 pub struct GachaClaimResponseDto {
 	pub transaction_number: String,
 	pub user: UsersItemDto,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct GachaRollResponseDto {
+	pub item: GachaItemResponseDto,
 }

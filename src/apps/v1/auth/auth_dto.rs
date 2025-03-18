@@ -29,8 +29,15 @@ pub struct AuthRegisterRequestDto {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-pub struct AuthQueryByEmailResponse {
+pub struct AuthActiveInactiveRequestDto {
+	pub is_active: bool,
+	pub email: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct AuthQueryByEmailResponseDto {
 	pub email: String,
 	pub fullname: String,
 	pub password: String,
+	pub is_active: bool,
 }

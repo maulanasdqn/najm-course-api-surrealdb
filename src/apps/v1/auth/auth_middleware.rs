@@ -1,11 +1,12 @@
-use crate::{common_response, extract_email, AppState};
+use super::AuthRepository;
+use crate::{
+	common_response, extract_email, v1::users_schema::UsersSchema, AppState,
+};
 use axum::{
 	extract::Request, http::StatusCode, middleware::Next, response::Response,
 	Extension,
 };
 use std::convert::Infallible;
-
-use super::{AuthQueryByEmailResponse, AuthRepository};
 
 pub async fn auth_middleware(
 	Extension(state): Extension<AppState>,
@@ -26,16 +27,15 @@ pub async fn auth_middleware(
 
 	let repository = AuthRepository::new(&state);
 
-	let user: Option<AuthQueryByEmailResponse> =
-		match repository.query_user_by_email(email).await {
-			Ok(user) => Some(user),
-			Err(err) => {
-				return Ok(common_response(
-					StatusCode::INTERNAL_SERVER_ERROR,
-					&format!("DB error: {}", err),
-				))
-			}
-		};
+	let user: Option<UsersSchema> = match repository.query_user_by_email(email).await {
+		Ok(user) => Some(user),
+		Err(err) => {
+			return Ok(common_response(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				&err.to_string(),
+			))
+		}
+	};
 
 	if user.is_none() {
 		return Ok(common_response(

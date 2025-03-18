@@ -1,6 +1,7 @@
 use super::{
-	GachaClaimRequestDto, GachaClaimResponseDto, GachaCreateItemRequestDto,
-	GachaItemSchema, GachaSchema,
+	GachaClaimResponseDto, GachaClaimSchema, GachaCreateClaimRequestDto,
+	GachaCreateItemRequestDto, GachaCreateRollRequestDto, GachaItemResponseDto,
+	GachaItemSchema, GachaRollSchema,
 };
 use crate::{v1::AuthRepository, AppState, ResourceEnum};
 use anyhow::{bail, Result};
@@ -15,25 +16,41 @@ impl<'a> GachaRepository<'a> {
 		Self { state }
 	}
 
-	pub async fn query_gacha_by_transaction_number(
+	pub async fn query_gacha_claim_by_transaction_number(
 		&self,
 		transaction_number: String,
 	) -> Result<GachaClaimResponseDto> {
 		let db = &self.state.surrealdb;
 
 		let result = db
-			.select((ResourceEnum::Gacha.to_string(), transaction_number))
+			.select((ResourceEnum::GachaClaims.to_string(), transaction_number))
 			.await?;
 
 		match result {
 			Some(response) => Ok(response),
-			None => bail!("Gacha not found"),
+			None => bail!("Gacha claim not found"),
 		}
 	}
 
-	pub async fn query_create_gacha_claims(
+	pub async fn query_gacha_item_by_name(
 		&self,
-		data: GachaClaimRequestDto,
+		name: String,
+	) -> Result<GachaItemResponseDto> {
+		let db = &self.state.surrealdb;
+
+		let result = db
+			.select((ResourceEnum::GachaItems.to_string(), name))
+			.await?;
+
+		match result {
+			Some(response) => Ok(response),
+			None => bail!("Gacha item not found"),
+		}
+	}
+
+	pub async fn query_create_gacha_claim(
+		&self,
+		data: GachaCreateClaimRequestDto,
 		email: String,
 	) -> Result<String> {
 		let auth_repository = AuthRepository::new(self.state);
@@ -44,12 +61,12 @@ impl<'a> GachaRepository<'a> {
 		let user_thing =
 			Thing::from((ResourceEnum::Users.to_string(), Id::String(user.email)));
 
-		let record: Option<GachaSchema> = db
+		let record: Option<GachaClaimSchema> = db
 			.create((
 				ResourceEnum::GachaClaims.to_string(),
 				&data.transaction_number,
 			))
-			.content(GachaSchema {
+			.content(GachaClaimSchema {
 				transaction_number: data.transaction_number.clone(),
 				user: user_thing,
 			})
@@ -68,7 +85,7 @@ impl<'a> GachaRepository<'a> {
 		let db = &self.state.surrealdb;
 
 		let record: Option<GachaItemSchema> = db
-			.create((ResourceEnum::Gacha.to_string(), data.item_name.clone()))
+			.create((ResourceEnum::GachaItems.to_string(), data.item_name.clone()))
 			.content(GachaItemSchema {
 				item_name: data.item_name.clone(),
 				item_image: data.item_image.clone(),
@@ -77,27 +94,31 @@ impl<'a> GachaRepository<'a> {
 
 		match record {
 			Some(_) => Ok("Gacha item successfully created".to_string()),
-			None => bail!("Failed to create gacha item record"),
+			None => bail!("Failed to create gacha item"),
 		}
 	}
 
 	pub async fn query_create_gacha_roll(
 		&self,
-		data: GachaCreateItemRequestDto,
+		data: GachaCreateRollRequestDto,
 	) -> Result<String> {
 		let db = &self.state.surrealdb;
+		let item_thing = Thing::from((
+			ResourceEnum::GachaItems.to_string(),
+			Id::String(data.item_name.clone()),
+		));
 
-		let record: Option<GachaItemSchema> = db
-			.create((ResourceEnum::Gacha.to_string(), data.item_name.clone()))
-			.content(GachaItemSchema {
-				item_name: data.item_name.clone(),
-				item_image: data.item_image.clone(),
+		let record: Option<GachaRollSchema> = db
+			.create((ResourceEnum::GachaRolls.to_string(), data.item_name.clone()))
+			.content(GachaRollSchema {
+				weight: data.weight.clone(),
+				item: item_thing,
 			})
 			.await?;
 
 		match record {
-			Some(_) => Ok("Gacha item successfully created".to_string()),
-			None => bail!("Failed to create gacha item record"),
+			Some(_) => Ok("Gacha roll successfully created".to_string()),
+			None => bail!("Failed to create gacha roll"),
 		}
 	}
 }

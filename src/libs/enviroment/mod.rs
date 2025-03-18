@@ -47,16 +47,13 @@ impl Env {
 				.unwrap_or_else(|_| "no-reply@example.com".to_string()),
 			smtp_password: env::var("SMTP_PASSWORD")
 				.unwrap_or_else(|_| "default_smtp_password".to_string()),
-			smtp_name: env::var("SMTP_NAME")
-				.unwrap_or_else(|_| "MyApp SMTP".to_string()),
+			smtp_name: env::var("SMTP_NAME").unwrap_or_else(|_| "MyApp SMTP".to_string()),
 			smtp_host: env::var("SMTP_HOST")
 				.unwrap_or_else(|_| "smtp.gmail.com".to_string()),
 			redisdb_url: env::var("REDISDB_URL")
 				.unwrap_or_else(|_| "localhost".to_string()),
-			fe_url: env::var("FE_URL")
-				.unwrap_or_else(|_| "http://localhost".to_string()),
-			rust_env: env::var("RUST_ENV")
-				.unwrap_or_else(|_| "development".to_string()),
+			fe_url: env::var("FE_URL").unwrap_or_else(|_| "http://localhost".to_string()),
+			rust_env: env::var("RUST_ENV").unwrap_or_else(|_| "development".to_string()),
 			minio_endpoint: env::var("MINIO_ENDPOINT")
 				.unwrap_or_else(|_| "http://localhost:9000".to_string()),
 			minio_bucket_name: env::var("MINIO_BUCKET_NAME")

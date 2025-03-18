@@ -1,4 +1,7 @@
-use super::{GachaClaimRequestDto, GachaCreateItemRequestDto, GachaRepository};
+use super::{
+	GachaCreateClaimRequestDto, GachaCreateItemRequestDto, GachaCreateRollRequestDto,
+	GachaRepository,
+};
 use crate::{common_response, extract_email, AppState};
 use axum::{
 	http::{HeaderMap, StatusCode},
@@ -8,8 +11,8 @@ use axum::{
 pub struct GachaService;
 
 impl GachaService {
-	pub async fn mutation_create_gacha_claims(
-		payload: GachaClaimRequestDto,
+	pub async fn mutation_create_gacha_claim(
+		payload: GachaCreateClaimRequestDto,
 		state: &AppState,
 		header: HeaderMap,
 	) -> Response {
@@ -25,7 +28,7 @@ impl GachaService {
 			}
 		};
 
-		match repository.query_create_gacha_claims(payload, email).await {
+		match repository.query_create_gacha_claim(payload, email).await {
 			Ok(msg) => common_response(StatusCode::CREATED, &msg),
 			Err(err) => common_response(StatusCode::BAD_REQUEST, &err.to_string()),
 		}
@@ -38,6 +41,18 @@ impl GachaService {
 		let repository = GachaRepository::new(state);
 
 		match repository.query_create_gacha_item(payload).await {
+			Ok(msg) => common_response(StatusCode::CREATED, &msg),
+			Err(err) => common_response(StatusCode::BAD_REQUEST, &err.to_string()),
+		}
+	}
+
+	pub async fn mutation_create_gacha_roll(
+		payload: GachaCreateRollRequestDto,
+		state: &AppState,
+	) -> Response {
+		let repository = GachaRepository::new(state);
+
+		match repository.query_create_gacha_roll(payload).await {
 			Ok(msg) => common_response(StatusCode::CREATED, &msg),
 			Err(err) => common_response(StatusCode::BAD_REQUEST, &err.to_string()),
 		}

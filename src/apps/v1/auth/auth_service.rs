@@ -6,8 +6,7 @@ use super::{
 };
 use crate::{
 	common_response, encode_access_token, encode_refresh_token, hash_password,
-	success_response, v1::UsersItemDto, verify_password, AppState,
-	ResponseSuccessDto,
+	success_response, v1::UsersItemDto, verify_password, AppState, ResponseSuccessDto,
 };
 
 pub struct AuthService;
@@ -21,14 +20,10 @@ impl AuthService {
 		match repository.query_user_by_email(payload.email.clone()).await {
 			Ok(user) => {
 				let is_password_correct =
-					verify_password(&payload.password, &user.password)
-						.unwrap_or(false);
+					verify_password(&payload.password, &user.password).unwrap_or(false);
 
 				if is_password_correct {
-					common_response(
-						StatusCode::BAD_REQUEST,
-						"Email or password not correct",
-					);
+					common_response(StatusCode::BAD_REQUEST, "Email or password not correct");
 				}
 
 				let access_token = encode_access_token(payload.email.clone());
@@ -39,6 +34,7 @@ impl AuthService {
 						user: UsersItemDto {
 							fullname: user.fullname.clone(),
 							email: user.email.clone(),
+							is_active: user.is_active.clone(),
 						},
 						token: TokenDto {
 							access_token: access_token.unwrap(),
@@ -55,10 +51,7 @@ impl AuthService {
 					})
 					.is_ok()
 				{
-					return common_response(
-						StatusCode::BAD_REQUEST,
-						"Failed to store data",
-					);
+					return common_response(StatusCode::BAD_REQUEST, "Failed to store data");
 				}
 
 				success_response(response)
