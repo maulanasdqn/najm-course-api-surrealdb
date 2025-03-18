@@ -5,6 +5,7 @@ use crate::v1::UsersItemDto;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct GachaCreateClaimRequestDto {
+	pub item_name: String,
 	pub transaction_number: String,
 }
 

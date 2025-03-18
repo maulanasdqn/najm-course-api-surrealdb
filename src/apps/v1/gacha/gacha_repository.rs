@@ -61,6 +61,11 @@ impl<'a> GachaRepository<'a> {
 		let user_thing =
 			Thing::from((ResourceEnum::Users.to_string(), Id::String(user.email)));
 
+		let item_thing = Thing::from((
+			ResourceEnum::GachaItems.to_string(),
+			Id::String(data.item_name.clone()),
+		));
+
 		let record: Option<GachaClaimSchema> = db
 			.create((
 				ResourceEnum::GachaClaims.to_string(),
@@ -68,6 +73,7 @@ impl<'a> GachaRepository<'a> {
 			))
 			.content(GachaClaimSchema {
 				transaction_number: data.transaction_number.clone(),
+				item: item_thing,
 				user: user_thing,
 			})
 			.await?;

@@ -4,6 +4,7 @@ use surrealdb::sql::Thing;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GachaClaimSchema {
 	pub transaction_number: String,
+	pub item: Thing,
 	pub user: Thing,
 }
 

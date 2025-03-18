@@ -4,11 +4,11 @@ use axum::{http::HeaderMap, response::IntoResponse, Extension, Json};
 
 #[utoipa::path(
     post,
-    path = "/v1/gacha/create/claims",
+    path = "/v1/gacha/create/claim",
     request_body = GachaCreateClaimRequestDto,
     responses(
-        (status = 200, description = "Create gacha claims successful", body = MessageResponseDto),
-        (status = 401, description = "Create gacha claims failed", body = MessageResponseDto)
+        (status = 200, description = "Create gacha claim successful", body = MessageResponseDto),
+        (status = 401, description = "Create gacha claim failed", body = MessageResponseDto)
     ),
     tag = "Gacha"
 )]

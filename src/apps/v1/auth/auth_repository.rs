@@ -61,7 +61,12 @@ impl<'a> AuthRepository<'a> {
 		let db = &self.state.surrealdb;
 		let record: Option<UsersItemDto> = db
 			.create((ResourceEnum::Users.to_string(), &data.email))
-			.content(data)
+			.content(UsersSchema {
+				fullname: data.fullname.clone(),
+				email: data.email.clone(),
+				password: data.password.clone(),
+				is_active: false,
+			})
 			.await?;
 		match record {
 			Some(_) => Ok("Success create user".into()),
