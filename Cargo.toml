@@ -1,5 +1,5 @@
 [package]
-name = "imphnen-cms-be"
+name = "imphnen-backend-service"
 version = "0.1.0"
 edition = "2021"
 

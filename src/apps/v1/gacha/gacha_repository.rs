@@ -48,6 +48,22 @@ impl<'a> GachaRepository<'a> {
 		}
 	}
 
+	pub async fn query_gacha_claim_by_name(
+		&self,
+		name: String,
+	) -> Result<GachaItemResponseDto> {
+		let db = &self.state.surrealdb;
+
+		let result = db
+			.select((ResourceEnum::GachaClaims.to_string(), name))
+			.await?;
+
+		match result {
+			Some(response) => Ok(response),
+			None => bail!("Gacha item not found"),
+		}
+	}
+
 	pub async fn query_create_gacha_claim(
 		&self,
 		data: GachaCreateClaimRequestDto,
