@@ -1,8 +1,8 @@
 use crate::{
 	v1::{
 		auth, gacha, AuthLoginRequestDto, AuthLoginResponsetDto,
-		GachaCreateClaimRequestDto, GachaCreateItemRequestDto,
-		GachaCreateRollRequestDto,
+		AuthResendOtpRequestDto, AuthVerifyEmailRequestDto, GachaCreateClaimRequestDto,
+		GachaCreateItemRequestDto, GachaCreateRollRequestDto,
 	},
 	MessageResponseDto, MetaRequestDto, MetaResponseDto, ResponseSuccessDto,
 };
@@ -17,6 +17,8 @@ use utoipa::{
     paths(
      auth::auth_controller::post_login,
      auth::auth_controller::post_register,
+     auth::auth_controller::post_verify_email,
+     auth::auth_controller::post_resend_otp,
      gacha::gacha_controller::post_create_gacha_claim,
      gacha::gacha_controller::post_create_gacha_item,
      gacha::gacha_controller::post_create_gacha_roll
@@ -28,6 +30,8 @@ use utoipa::{
            MessageResponseDto,
            AuthLoginRequestDto,
            AuthLoginResponsetDto,
+           AuthVerifyEmailRequestDto,
+           AuthResendOtpRequestDto,
            ResponseSuccessDto<AuthLoginResponsetDto>,
            GachaCreateClaimRequestDto,
            GachaCreateItemRequestDto,

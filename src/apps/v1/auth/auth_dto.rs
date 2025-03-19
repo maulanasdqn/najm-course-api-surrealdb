@@ -35,6 +35,29 @@ pub struct AuthActiveInactiveRequestDto {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct AuthVerifyEmailRequestDto {
+	pub email: String,
+	pub otp: u32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct AuthResendOtpRequestDto {
+	pub email: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct AuthNewPasswordRequestDto {
+	pub token: String,
+	pub password: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct AuthSetNewPasswordRequestDto {
+	pub email: String,
+	pub password: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct AuthQueryByEmailResponseDto {
 	pub email: String,
 	pub fullname: String,
