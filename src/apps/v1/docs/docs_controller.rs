@@ -19,7 +19,7 @@ use utoipa::{
      auth::auth_controller::post_register,
      gacha::gacha_controller::post_create_gacha_claim,
      gacha::gacha_controller::post_create_gacha_item,
-     gacha::gacha_controller::post_create_gacha_roll,
+     gacha::gacha_controller::post_create_gacha_roll
     ),
     components(
         schemas(
@@ -50,7 +50,6 @@ use utoipa::{
     modifiers(&SecurityAddon),
     tags(
         (name = "Authentication", description = "List of Authentication Endpoints"),
-        (name = "Users", description = "List of Users Endpoints")
     )
 )]
 

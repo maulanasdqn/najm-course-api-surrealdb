@@ -4,7 +4,7 @@ use axum::{http::HeaderMap, response::IntoResponse, Extension, Json};
 
 #[utoipa::path(
     post,
-    path = "/v1/gacha/create/claim",
+    path = "/v1/gacha/claims/create",
     request_body = GachaCreateClaimRequestDto,
     responses(
         (status = 200, description = "Create gacha claim successful", body = MessageResponseDto),
@@ -22,7 +22,7 @@ pub async fn post_create_gacha_claim(
 
 #[utoipa::path(
     post,
-    path = "/v1/gacha/create/item",
+    path = "/v1/gacha/items/create",
     request_body = GachaCreateItemRequestDto,
     responses(
         (status = 200, description = "Create gacha item successful", body = MessageResponseDto),
@@ -39,7 +39,7 @@ pub async fn post_create_gacha_item(
 
 #[utoipa::path(
     post,
-    path = "/v1/gacha/create/roll",
+    path = "/v1/gacha/rolls/create",
     request_body = GachaCreateRollRequestDto,
     responses(
         (status = 200, description = "Create gacha roll successful", body = MessageResponseDto),

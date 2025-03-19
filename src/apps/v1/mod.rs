@@ -8,7 +8,6 @@ pub use auth::*;
 pub use docs::*;
 pub use gacha::*;
 pub use users::*;
-use utoipa_swagger_ui::SwaggerUi;
 
 pub async fn routes() -> Router {
 	let public_routes = Router::new().nest("/auth", auth_router());
@@ -17,8 +16,5 @@ pub async fn routes() -> Router {
 		.nest("/gacha", gacha_router())
 		.layer(from_fn(auth::auth_middleware::auth_middleware));
 
-	Router::new()
-		.merge(public_routes)
-		.merge(protected_routes)
-		.merge(SwaggerUi::new("/v1/docs").url("/openapi.json", docs_router()))
+	Router::new().merge(public_routes).merge(protected_routes)
 }
