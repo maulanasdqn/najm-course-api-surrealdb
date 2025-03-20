@@ -13,12 +13,12 @@ pub async fn apps(surrealdb: SurrealClient, redisdb: RedisClient) -> Router {
 	let state = AppState { surrealdb, redisdb };
 	let env = Env::new();
 	let cors_origins = match env.rust_env.as_str() {
-		"development" => vec!["http://localhost:5173"],
+		"development" => vec!["http://localhost:3000"],
 		"production" => {
 			vec!["https://gacha.imphnen.dev", "https://imphnen.dev"]
 		}
 		_ => vec![
-			"http://localhost:5173",
+			"http://localhost:3000",
 			"https://gacha.imphnen.dev",
 			"https://imphnen.dev",
 		],
