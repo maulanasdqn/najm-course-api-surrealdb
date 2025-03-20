@@ -1,14 +1,17 @@
 use super::{
-	AuthLoginRequestDto, AuthLoginResponsetDto, AuthRegisterRequestDto,
-	AuthRepository, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto, TokenDto,
+	AuthLoginRequestDto, AuthLoginResponsetDto, AuthNewPasswordRequestDto,
+	AuthRegisterRequestDto, AuthRepository, AuthResendOtpRequestDto,
+	AuthVerifyEmailRequestDto, TokenDto,
 };
 use crate::{
-	common_response, encode_access_token, encode_refresh_token, generate_otp,
-	hash_password, send_email, success_response, verify_password, AppState, Env,
+	common_response, encode_access_token, encode_refresh_token, extract_email_token,
+	generate_otp, get_iso_date, hash_password, send_email, success_response,
+	validate_request, verify_password, AppState, Env, ResourceEnum,
 	ResponseSuccessDto, UsersActiveInactiveSchema, UsersItemDto, UsersRepository,
 	UsersSchema,
 };
 use axum::{http::StatusCode, response::Response};
+use surrealdb::sql::{Id, Thing};
 
 pub struct AuthService;
 
@@ -17,6 +20,10 @@ impl AuthService {
 		payload: AuthLoginRequestDto,
 		state: &AppState,
 	) -> Response {
+		if let Err((status, message)) = validate_request(&payload) {
+			return common_response(status, &message);
+		}
+
 		let user_repo = UsersRepository::new(state);
 		let auth_repo = AuthRepository::new(state);
 
@@ -112,6 +119,10 @@ impl AuthService {
 			email: payload.email,
 			password: hashed_password,
 			fullname: payload.fullname,
+			student_type: payload.student_type,
+			phone_number: payload.phone_number,
+			referral_code: payload.referral_code,
+			referred_by: payload.referred_by,
 		};
 
 		let otp = generate_otp::OtpManager::generate_otp();
@@ -124,12 +135,30 @@ impl AuthService {
 
 		send_email(&new_user.email.clone(), "OTP Verification", &message).unwrap();
 
+		let role_thing =
+			Thing::from((ResourceEnum::Roles.to_string(), Id::String("".to_string())));
+
 		match user_repo
 			.query_create_user(UsersSchema {
+				id: Some("".to_string()),
 				email: new_user.email.clone(),
 				fullname: new_user.fullname.clone(),
 				password: new_user.password.clone(),
 				is_active: false,
+				role_id: "".to_string(),
+				avatar: Some("".to_string()),
+				phone_number: new_user.phone_number.clone(),
+				referral_code: new_user.referral_code.clone(),
+				referred_by: new_user.referred_by.clone(),
+				identity_number: Some("".to_string()),
+				student_type: new_user.student_type.clone(),
+				religion: Some("".to_string()),
+				gender: Some("".to_string()),
+				birthdate: Some("".to_string()),
+				is_profile_completed: Some(false),
+				created_at: Some(get_iso_date()),
+				updated_at: Some(get_iso_date()),
+				role: role_thing,
 			})
 			.await
 		{
@@ -232,6 +261,25 @@ impl AuthService {
 					common_response(StatusCode::BAD_REQUEST, "Failed to verify OTP")
 				}
 			}
+			Err(err) => common_response(StatusCode::BAD_REQUEST, &err.to_string()),
+		}
+	}
+
+	pub async fn mutation_new_password(
+		payload: AuthNewPasswordRequestDto,
+		state: &AppState,
+	) -> Response {
+		let user_repo = UsersRepository::new(state);
+		let email = extract_email_token(payload.token).unwrap();
+
+		match user_repo
+			.query_update_password_user(crate::UsersSetNewPasswordSchema {
+				email: email.clone(),
+				password: payload.password.clone(),
+			})
+			.await
+		{
+			Ok(msg) => common_response(StatusCode::OK, &msg),
 			Err(err) => common_response(StatusCode::BAD_REQUEST, &err.to_string()),
 		}
 	}

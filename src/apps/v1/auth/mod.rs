@@ -17,4 +17,5 @@ pub fn auth_router() -> Router {
 		.route("/verify", post(auth_controller::post_verify_email))
 		.route("/resend", post(auth_controller::post_resend_otp))
 		.route("/forgot", post(auth_controller::post_forgot_password))
+		.route("/new-password", post(auth_controller::post_new_password))
 }

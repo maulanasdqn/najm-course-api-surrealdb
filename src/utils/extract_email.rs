@@ -7,3 +7,8 @@ pub fn extract_email(headers: &HeaderMap) -> Option<String> {
 	let token_data = decode_access_token(token).ok()?;
 	Some(token_data.claims.sub)
 }
+
+pub fn extract_email_token(token: String) -> Option<String> {
+	let token_data = decode_access_token(&token).ok()?;
+	Some(token_data.claims.sub)
+}

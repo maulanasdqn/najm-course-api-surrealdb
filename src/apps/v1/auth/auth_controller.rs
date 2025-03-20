@@ -3,7 +3,7 @@ use super::{
 	AuthVerifyEmailRequestDto,
 };
 use crate::{v1::AuthLoginResponsetDto, AppState};
-use crate::{MessageResponseDto, ResponseSuccessDto};
+use crate::{AuthNewPasswordRequestDto, MessageResponseDto, ResponseSuccessDto};
 use axum::{response::IntoResponse, Extension, Json};
 
 #[utoipa::path(
@@ -89,4 +89,21 @@ pub async fn post_forgot_password(
 	Json(payload): Json<AuthResendOtpRequestDto>,
 ) -> impl IntoResponse {
 	AuthService::mutation_forgot_password(payload, &state).await
+}
+
+#[utoipa::path(
+    post,
+    path = "/v1/auth/new-password",
+    request_body = AuthNewPasswordRequestDto,
+    responses(
+        (status = 200, description = "New password request successful", body = MessageResponseDto),
+        (status = 401, description = "New password request failed", body = MessageResponseDto)
+    ),
+    tag = "Authentication"
+)]
+pub async fn post_new_password(
+	Extension(state): Extension<AppState>,
+	Json(payload): Json<AuthNewPasswordRequestDto>,
+) -> impl IntoResponse {
+	AuthService::mutation_new_password(payload, &state).await
 }
