@@ -1,5 +1,5 @@
 [package]
-name = "imphnen-backend-service"
+name = "axum-surrealdb-boilerplate"
 version = "0.1.0"
 edition = "2021"
 

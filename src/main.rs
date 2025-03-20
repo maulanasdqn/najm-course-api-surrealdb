@@ -1,4 +1,4 @@
-use imphnen_backend_service::{apps, axum_init};
+use axum_surrealdb_boilerplate::{apps, axum_init};
 
 #[tokio::main]
 async fn main() {

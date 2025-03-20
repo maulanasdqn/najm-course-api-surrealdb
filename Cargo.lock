@@ -389,6 +389,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-surrealdb-boilerplate"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "argon2",
+ "axum",
+ "chrono",
+ "jsonwebtoken",
+ "lettre",
+ "log",
+ "rand 0.9.0",
+ "redis",
+ "serde",
+ "serde_json",
+ "surrealdb",
+ "thiserror 2.0.12",
+ "tokio",
+ "tower-http",
+ "utoipa",
+ "utoipa-swagger-ui",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1752,29 +1775,6 @@ checksum = "daca1df1c957320b2cf139ac61e7bd64fed304c5040df000a745aa1de3b4ef71"
 dependencies = [
  "icu_normalizer",
  "icu_properties",
-]
-
-[[package]]
-name = "imphnen-backend-service"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "argon2",
- "axum",
- "chrono",
- "jsonwebtoken",
- "lettre",
- "log",
- "rand 0.9.0",
- "redis",
- "serde",
- "serde_json",
- "surrealdb",
- "thiserror 2.0.12",
- "tokio",
- "tower-http",
- "utoipa",
- "utoipa-swagger-ui",
 ]
 
 [[package]]

@@ -1,8 +1,7 @@
 use crate::{
 	v1::{
-		auth, gacha, AuthLoginRequestDto, AuthLoginResponsetDto,
-		AuthResendOtpRequestDto, AuthVerifyEmailRequestDto, GachaCreateClaimRequestDto,
-		GachaCreateItemRequestDto, GachaCreateRollRequestDto,
+		auth, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto,
+		AuthVerifyEmailRequestDto,
 	},
 	MessageResponseDto, MetaRequestDto, MetaResponseDto, ResponseSuccessDto,
 };
@@ -18,10 +17,7 @@ use utoipa::{
      auth::auth_controller::post_login,
      auth::auth_controller::post_register,
      auth::auth_controller::post_verify_email,
-     auth::auth_controller::post_resend_otp,
-     gacha::gacha_controller::post_create_gacha_claim,
-     gacha::gacha_controller::post_create_gacha_item,
-     gacha::gacha_controller::post_create_gacha_roll
+     auth::auth_controller::post_resend_otp
     ),
     components(
         schemas(
@@ -33,14 +29,11 @@ use utoipa::{
            AuthVerifyEmailRequestDto,
            AuthResendOtpRequestDto,
            ResponseSuccessDto<AuthLoginResponsetDto>,
-           GachaCreateClaimRequestDto,
-           GachaCreateItemRequestDto,
-           GachaCreateRollRequestDto
         )
     ),
     info(
-        title = "IMPHNEN API",
-        description = "IMPHNEN API Documentation",
+        title = "Axum SurrealDB Boilerplate",
+        description = "Axum SurrealDB Documentation",
         version = "0.1.0",
         contact(
             name = "Maulana Sodiqin",

@@ -1,113 +1,72 @@
-# IMPHNEN CMS API
-
-This project is a CMS API for [IMPHNEN Website](https://imphnen.dev)
+# Axum SurrealDB Boilerplate
 
 ## Features
 
-- **RESTful API**: Provides endpoints for managing wedding reservations.
-- **Database Integration**: Employs SeaORM for seamless database interactions.
-- **Authentication**: Authentication and Middleware
-- **CORS Handling**: Handling CORS with Tower HTTP CorsLayer
-- **API Docs**: OpenAPI Swager Ready
+- **Authentication Ready**: Preconfigured authentication and middleware for secure API access.
+- **Database Integration**: SurrealDB seamlessly integrated as an Axum Extension.
+- **CORS Handling**: Fine-tuned CORS management with Tower HTTP `CorsLayer`.
+- **API Documentation**: Fully documented with OpenAPI and Swagger UI.
+- **Optimized for Performance**: Asynchronous, lightweight, and scalable architecture.
 
 ## Prerequisites
 
-- **Rust**: Ensure that Rust is installed on your system. You can install it from [rust-lang.org](https://www.rust-lang.org/).
-- **Database**: Set up a Postgresql database and note the connection details
-- **Docker**: if you want build this project using docker, you need docker, You can install it from [docker.com](https://www.docker.com/)
-- **Nix**: if you want build this project using nix, you need nix, You can install it from [nixos.org](https://nixos.org/)
+- **Rust**: Install Rust from [rust-lang.org](https://www.rust-lang.org/).
+- **Database**: Set up a SurrealDB instance and configure connection details.
+- **Docker**: Required for containerized deployment, install from [docker.com](https://www.docker.com/).
+- **Nix (Optional)**: For reproducible builds, install from [nixos.org](https://nixos.org/).
 
 ## Getting Started
 
 1. **Clone the Repository**:
 
-   ```bash
-   git clone https://github.com/IMPHNEN/imphnen-cms-api.git
-   cd imphnen-cms-api
-   ```
+   - `git clone https://github.com/maulanasdqn/axum-surrealdb-boilerplate`
 
 2. **Set Up Environment Variables**:
 
-   Copy a `.env.exanple` file:
+   - Copy `.env.example` and rename it to `.env`
 
-   ```env
-   cp .env.example .env
-   ```
+   - **Windows**: Run the script: `./apply-env.ps1`
+   - **Unix-based systems (Linux, macOS, BSD)**: Run the script: `./apply-env.sh`
 
 3. **Install Dependencies**:
 
-   ```bash
-   cargo check
-   ```
+   - `cargo install .`
 
-   ```bash
-   cargo build --release
-   ```
-    ```bash
-   cargo install sea-orm-cli
-   ```
+4. **Setup Database**:
 
-5. **Run Database Migrations**:
+   - Install the surrealDB
+   - **Windows**: `iwr https://windows.surrealdb.com -useb | iex`
+   - **Unix-based systems (Linux, macOS, BSD)**: `curl -sSf https://install.surrealdb.com | sh`
+   - Start the database `surreal start --user root --pass root`
 
-   ```bash
-   sea-orm-cli migrate up
-   ```
+5. **Start the Server**:
 
-6. **Start the Server**:
+   - Install Cargo Watch `cargo install cargo-watch`
+   - Run it with cargo watch `cargo watch -x run`
 
-   ```bash
-   cargo run -q
-   ```
-
-   The API will be accessible at `http://localhost:3000/v1/docs`.
+   The API will be available at `http://localhost:3000/docs`.
 
 ## Docker
 
 1. **Build the Docker Image**:
 
-   ```bash
-   docker build -t cms-api .
-   ```
-
 2. **Run the Docker Container**:
 
-   ```bash
-   docker run -p 3000:3000 --env-file .env cms-api cms-api:latest
-   ```
+   The API will be accessible at `http://localhost:3000/docs`.
 
-   The API will be accessible at `http://localhost:3000/v1/docs`.
-
-
-## Using Nix as Builder
+## Using Nix as Builder (Optional)
 
 1. **Install Nix**:
 
-   ```bash
-   curl -L https://nixos.org/nix/install | sh
-   ```
-
-2. **Switch to Nix Shell or Nix Flake**:
-
-   ```bash
-   nix develop
-   ```
+2. **Enter Nix Shell or Use Nix Flakes**:
 
 3. **Build the Project**:
 
-   ```bash
-   nix build
-   ```
-
 4. **Run the Server**:
-
-   ```bash
-    nix run
-   ```
-
 
 ## Contributing
 
-Contributions are welcome! Please fork the repository and create a pull request with your changes.
+Contributions are welcome! Fork the repository and create a pull request with your improvements.
 
 ## License
 
@@ -116,4 +75,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Acknowledgements
 
 - [Axum](https://github.com/tokio-rs/axum)
-- [SeaORM](https://github.com/SeaQL/sea-orm)
+- [SurrealDB](https://github.com/surrealdb/surrealdb)
