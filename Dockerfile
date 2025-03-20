@@ -11,12 +11,12 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY ./src ./src
 
-RUN cargo build --release && strip /app/target/release/imphnen-cms-api
+RUN cargo build --release && strip /app/target/release/axum-surrealdb-boilerplate
 
 FROM gcr.io/distroless/cc AS runner
 
 WORKDIR /app
 
-COPY --from=builder /app/target/release/imphnen-cms-api .
+COPY --from=builder /app/target/release/axum-surrealdb-boilerplate .
 
-CMD ["/app/imphnen-cms-api"]
+CMD ["/app/axum-boilerplate-surrealdb"]
