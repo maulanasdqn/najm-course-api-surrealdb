@@ -1,6 +1,6 @@
-use super::AuthRepository;
 use crate::{
 	common_response, extract_email, v1::users_schema::UsersSchema, AppState,
+	UsersRepository,
 };
 use axum::{
 	extract::Request, http::StatusCode, middleware::Next, response::Response,
@@ -25,7 +25,7 @@ pub async fn auth_middleware(
 		}
 	};
 
-	let repository = AuthRepository::new(&state);
+	let repository = UsersRepository::new(&state);
 
 	let user: Option<UsersSchema> = match repository.query_user_by_email(email).await {
 		Ok(user) => Some(user),

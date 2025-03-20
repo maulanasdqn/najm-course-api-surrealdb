@@ -1,5 +1,5 @@
 [package]
-name = "axum-surrealdb-boilerplate"
+name = "najm-course-api"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,7 +8,7 @@ axum = { version = "0.8.1", features = ["multipart"] }
 log = "0.4.25"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.138"
-tokio = { version = "1.43.0", features = ["full"] }
+tokio = { version = "1.43.0" }
 argon2 = { version = "0.5.3", features = ["password-hash"] }
 jsonwebtoken = "9.3.1"
 chrono = "0.4.39"

@@ -1,15 +1,14 @@
-use axum::{http::StatusCode, response::Response};
-
 use super::{
-	AuthActiveInactiveRequestDto, AuthLoginRequestDto, AuthLoginResponsetDto,
-	AuthRegisterRequestDto, AuthRepository, AuthResendOtpRequestDto,
-	AuthVerifyEmailRequestDto, TokenDto,
+	AuthLoginRequestDto, AuthLoginResponsetDto, AuthRegisterRequestDto,
+	AuthRepository, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto, TokenDto,
 };
 use crate::{
 	common_response, encode_access_token, encode_refresh_token, generate_otp,
-	hash_password, send_email, success_response, v1::UsersItemDto, verify_password,
-	AppState, Env, ResponseSuccessDto,
+	hash_password, send_email, success_response, verify_password, AppState, Env,
+	ResponseSuccessDto, UsersActiveInactiveSchema, UsersItemDto, UsersRepository,
+	UsersSchema,
 };
+use axum::{http::StatusCode, response::Response};
 
 pub struct AuthService;
 
@@ -18,9 +17,10 @@ impl AuthService {
 		payload: AuthLoginRequestDto,
 		state: &AppState,
 	) -> Response {
-		let repository = AuthRepository::new(state);
+		let user_repo = UsersRepository::new(state);
+		let auth_repo = AuthRepository::new(state);
 
-		match repository.query_user_by_email(payload.email.clone()).await {
+		match user_repo.query_user_by_email(payload.email.clone()).await {
 			Ok(user) => {
 				let is_password_correct =
 					verify_password(&payload.password, &user.password).unwrap_or(false);
@@ -73,11 +73,7 @@ impl AuthService {
 					},
 				};
 
-				if let Err(_) = repository.query_store_user_data(AuthRegisterRequestDto {
-					fullname: user.fullname,
-					password: user.password,
-					email: user.email,
-				}) {
+				if let Err(_) = auth_repo.query_store_user_data(user) {
 					return common_response(StatusCode::BAD_REQUEST, "Failed to store data");
 				}
 
@@ -91,8 +87,10 @@ impl AuthService {
 		payload: AuthRegisterRequestDto,
 		state: &AppState,
 	) -> Response {
-		let repository = AuthRepository::new(state);
-		if repository
+		let user_repo = UsersRepository::new(state);
+		let auth_repo = AuthRepository::new(state);
+
+		if user_repo
 			.query_user_by_email(payload.email.clone())
 			.await
 			.is_ok()
@@ -118,7 +116,7 @@ impl AuthService {
 
 		let otp = generate_otp::OtpManager::generate_otp();
 
-		repository
+		auth_repo
 			.query_store_otp(new_user.email.clone(), otp.clone())
 			.unwrap();
 
@@ -126,7 +124,15 @@ impl AuthService {
 
 		send_email(&new_user.email.clone(), "OTP Verification", &message).unwrap();
 
-		match repository.query_create_user(new_user).await {
+		match user_repo
+			.query_create_user(UsersSchema {
+				email: new_user.email.clone(),
+				fullname: new_user.fullname.clone(),
+				password: new_user.password.clone(),
+				is_active: false,
+			})
+			.await
+		{
 			Ok(_) => common_response(StatusCode::CREATED, "Registration successful"),
 			Err(err) => {
 				common_response(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string())
@@ -154,8 +160,8 @@ impl AuthService {
 		payload: AuthResendOtpRequestDto,
 		state: &AppState,
 	) -> Response {
-		let repository = AuthRepository::new(state);
-		if repository
+		let user_repo = UsersRepository::new(state);
+		if user_repo
 			.query_user_by_email(payload.email.clone())
 			.await
 			.is_err()
@@ -188,14 +194,16 @@ impl AuthService {
 		payload: AuthVerifyEmailRequestDto,
 		state: &AppState,
 	) -> Response {
-		let repository = AuthRepository::new(state);
-		match repository.query_get_stored_otp(payload.email.clone()) {
+		let user_repo = UsersRepository::new(state);
+		let auth_repo = AuthRepository::new(state);
+
+		match auth_repo.query_get_stored_otp(payload.email.clone()) {
 			Ok(stored_otp) => {
 				let user_otp = payload.otp;
 				let is_otp_valid = stored_otp == user_otp;
 				if is_otp_valid {
-					match repository
-						.query_active_inactive_user(AuthActiveInactiveRequestDto {
+					match user_repo
+						.query_active_inactive_user(UsersActiveInactiveSchema {
 							email: payload.email.clone(),
 							is_active: true,
 						})
@@ -203,7 +211,7 @@ impl AuthService {
 					{
 						Ok(_) => {
 							if let Err(e) =
-								repository.query_delete_stored_otp(payload.email.clone())
+								auth_repo.query_delete_stored_otp(payload.email.clone())
 							{
 								return common_response(
 									StatusCode::INTERNAL_SERVER_ERROR,
@@ -215,7 +223,7 @@ impl AuthService {
 						Err(err) => common_response(StatusCode::BAD_REQUEST, &err.to_string()),
 					}
 				} else {
-					if let Err(e) = repository.query_delete_stored_otp(payload.email.clone()) {
+					if let Err(e) = auth_repo.query_delete_stored_otp(payload.email.clone()) {
 						return common_response(
 							StatusCode::INTERNAL_SERVER_ERROR,
 							&format!("Failed to delete OTP: {}", e),

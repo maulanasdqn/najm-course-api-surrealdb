@@ -1,4 +1,4 @@
-use axum_surrealdb_boilerplate::{apps, axum_init};
+use najm_course_api::{apps, axum_init};
 
 #[tokio::main]
 async fn main() {

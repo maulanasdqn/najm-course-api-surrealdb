@@ -1,10 +1,4 @@
-use super::{
-	AuthActiveInactiveRequestDto, AuthRegisterRequestDto, AuthSetNewPasswordRequestDto,
-};
-use crate::{
-	v1::{users_schema::UsersSchema, UsersItemDto},
-	AppState, RedisKeyEnum, ResourceEnum,
-};
+use crate::{AppState, RedisKeyEnum, UsersSchema};
 use anyhow::{anyhow, bail, Result};
 use redis::Commands;
 
@@ -17,10 +11,7 @@ impl<'a> AuthRepository<'a> {
 		Self { state }
 	}
 
-	pub fn query_store_user_data(
-		&self,
-		user: AuthRegisterRequestDto,
-	) -> Result<String> {
+	pub fn query_store_user_data(&self, user: UsersSchema) -> Result<String> {
 		let redis_key = format!("{}:{}", RedisKeyEnum::User, user.email.clone());
 		match &self.state.redisdb.get_connection().and_then(|mut conn| {
 			conn.set_ex::<_, String, ()>(
@@ -34,13 +25,13 @@ impl<'a> AuthRepository<'a> {
 		}
 	}
 
-	pub fn query_get_stored_user(&self, email: String) -> Result<UsersItemDto> {
+	pub fn query_get_stored_user(&self, email: String) -> Result<UsersSchema> {
 		let redis_key = format!("{}:{}", RedisKeyEnum::User, email);
 		let mut conn = self.state.redisdb.get_connection()?;
 		let data: Option<String> = conn.get(&redis_key)?;
 		match data {
 			Some(user_json) => {
-				let user: UsersItemDto = serde_json::from_str(&user_json)?;
+				let user: UsersSchema = serde_json::from_str(&user_json)?;
 				Ok(user)
 			}
 			None => bail!("No stored user data found"),
@@ -90,75 +81,6 @@ impl<'a> AuthRepository<'a> {
 		match conn.del::<_, ()>(&redis_key) {
 			Ok(_) => Ok("Successfully deleted OTP".to_string()),
 			Err(e) => Err(anyhow!("Failed to delete OTP from Redis: {}", e)),
-		}
-	}
-
-	pub async fn query_user_by_email(&self, email: String) -> Result<UsersSchema> {
-		let db = &self.state.surrealdb;
-		let result = db
-			.select((ResourceEnum::Users.to_string(), email.clone()))
-			.await?;
-		match result {
-			Some(response) => Ok(response),
-			None => {
-				bail!("User not found")
-			}
-		}
-	}
-
-	pub async fn query_create_user(
-		&self,
-		data: AuthRegisterRequestDto,
-	) -> Result<String> {
-		let db = &self.state.surrealdb;
-		let record: Option<UsersItemDto> = db
-			.create((ResourceEnum::Users.to_string(), &data.email))
-			.content(UsersSchema {
-				fullname: data.fullname.clone(),
-				email: data.email.clone(),
-				password: data.password.clone(),
-				is_active: false,
-			})
-			.await?;
-		match record {
-			Some(_) => Ok("Success create user".into()),
-			None => bail!("Failed to create user"),
-		}
-	}
-
-	pub async fn query_active_inactive_user(
-		&self,
-		data: AuthActiveInactiveRequestDto,
-	) -> Result<String> {
-		let db = &self.state.surrealdb;
-		let record: Option<AuthActiveInactiveRequestDto> = db
-			.update((ResourceEnum::Users.to_string(), &data.email))
-			.merge(AuthActiveInactiveRequestDto {
-				email: data.email.clone(),
-				is_active: data.is_active.clone(),
-			})
-			.await?;
-		match record {
-			Some(_) => Ok("Success update user".into()),
-			None => bail!("Failed to update user"),
-		}
-	}
-
-	pub async fn query_update_password_user(
-		&self,
-		data: AuthSetNewPasswordRequestDto,
-	) -> Result<String> {
-		let db = &self.state.surrealdb;
-		let record: Option<AuthSetNewPasswordRequestDto> = db
-			.update((ResourceEnum::Users.to_string(), &data.email))
-			.merge(AuthSetNewPasswordRequestDto {
-				email: data.email.clone(),
-				password: data.password.clone(),
-			})
-			.await?;
-		match record {
-			Some(_) => Ok("Success update password user".into()),
-			None => bail!("Failed to update password user"),
 		}
 	}
 }

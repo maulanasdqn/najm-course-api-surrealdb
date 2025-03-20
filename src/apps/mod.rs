@@ -9,6 +9,8 @@ use utoipa_swagger_ui::SwaggerUi;
 pub mod v1;
 pub mod v2;
 
+pub use v1::*;
+
 pub async fn apps(surrealdb: SurrealClient, redisdb: RedisClient) -> Router {
 	let state = AppState { surrealdb, redisdb };
 	let env = Env::new();
