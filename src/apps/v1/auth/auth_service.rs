@@ -11,7 +11,10 @@ use crate::{
 	UsersSchema,
 };
 use axum::{http::StatusCode, response::Response};
-use surrealdb::sql::{Id, Thing};
+use surrealdb::{
+	sql::{Id, Thing},
+	Uuid,
+};
 
 pub struct AuthService;
 
@@ -140,25 +143,20 @@ impl AuthService {
 
 		match user_repo
 			.query_create_user(UsersSchema {
-				id: Some("".to_string()),
+				id: Uuid::new_v4().to_string(),
 				email: new_user.email.clone(),
 				fullname: new_user.fullname.clone(),
 				password: new_user.password.clone(),
-				is_active: false,
-				role_id: "".to_string(),
-				avatar: Some("".to_string()),
 				phone_number: new_user.phone_number.clone(),
 				referral_code: new_user.referral_code.clone(),
 				referred_by: new_user.referred_by.clone(),
-				identity_number: Some("".to_string()),
 				student_type: new_user.student_type.clone(),
-				religion: Some("".to_string()),
-				gender: Some("".to_string()),
-				birthdate: Some("".to_string()),
-				is_profile_completed: Some(false),
 				created_at: Some(get_iso_date()),
 				updated_at: Some(get_iso_date()),
 				role: role_thing,
+				is_active: false,
+				is_profile_completed: false,
+				..Default::default()
 			})
 			.await
 		{
