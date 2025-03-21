@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
-use surrealdb::{engine::remote::ws::Client, Surreal};
+use surrealdb::{
+	engine::{local::Db, remote::ws::Client},
+	Surreal,
+};
 use utoipa::{IntoParams, ToSchema};
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -37,11 +40,11 @@ pub struct ResponseListSuccessDto<T: Serialize> {
 	pub meta: Option<MetaResponseDto>,
 }
 
-pub type SurrealClient = Surreal<Client>;
-pub type RedisClient = redis::Client;
+pub type SurrealWsClient = Surreal<Client>;
+pub type SurrealMemClient = Surreal<Db>;
 
 #[derive(Clone)]
 pub struct AppState {
-	pub surrealdb: SurrealClient,
-	pub redisdb: RedisClient,
+	pub surrealdb_ws: SurrealWsClient,
+	pub surrealdb_mem: SurrealMemClient,
 }

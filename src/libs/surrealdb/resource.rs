@@ -2,6 +2,8 @@ use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResourceEnum {
+	OtpCache,
+	UsersCache,
 	GachaItems,
 	GachaClaims,
 	GachaRolls,
@@ -15,6 +17,8 @@ impl fmt::Display for ResourceEnum {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let str = match self {
 			ResourceEnum::Users => "app_users",
+			ResourceEnum::UsersCache => "app_users_cache",
+			ResourceEnum::OtpCache => "app_otp_cache",
 			ResourceEnum::Roles => "app_roles",
 			ResourceEnum::Permissions => "app_permissions",
 			ResourceEnum::RolesPermissions => "app_roles_permissions",

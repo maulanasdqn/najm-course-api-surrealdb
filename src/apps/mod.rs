@@ -1,4 +1,4 @@
-use crate::{AppState, Env, RedisClient, SurrealClient};
+use crate::{AppState, Env, SurrealMemClient, SurrealWsClient};
 use axum::{
 	http::{header, HeaderValue, Method},
 	Extension, Router,
@@ -11,8 +11,14 @@ pub mod v2;
 
 pub use v1::*;
 
-pub async fn apps(surrealdb: SurrealClient, redisdb: RedisClient) -> Router {
-	let state = AppState { surrealdb, redisdb };
+pub async fn apps(
+	surrealdb_ws: SurrealWsClient,
+	surrealdb_mem: SurrealMemClient,
+) -> Router {
+	let state = AppState {
+		surrealdb_ws,
+		surrealdb_mem,
+	};
 	let env = Env::new();
 	let cors_origins = match env.rust_env.as_str() {
 		"development" => vec!["http://localhost:3000"],

@@ -1,12 +1,13 @@
-use serde::{Deserialize, Serialize};
-use surrealdb::sql::{Id, Thing};
-
 use crate::ResourceEnum;
+use serde::{Deserialize, Serialize};
+use surrealdb::{
+	sql::{Id, Thing},
+	Uuid,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UsersSchema {
-	pub id: String,
-	pub role_id: String,
+	pub id: Thing,
 	pub fullname: String,
 	pub email: String,
 	pub password: String,
@@ -29,8 +30,10 @@ pub struct UsersSchema {
 impl Default for UsersSchema {
 	fn default() -> Self {
 		UsersSchema {
-			id: String::new(),
-			role_id: String::new(),
+			id: Thing::from((
+				ResourceEnum::Users.to_string(),
+				Id::String(Uuid::new_v4().to_string()),
+			)),
 			fullname: String::new(),
 			email: String::new(),
 			password: String::new(),
@@ -44,11 +47,11 @@ impl Default for UsersSchema {
 			religion: None,
 			gender: None,
 			birthdate: None,
+			is_profile_completed: false,
 			role: Thing::from((
 				ResourceEnum::Roles.to_string(),
-				Id::String("".to_string()),
+				Id::String(Uuid::new_v4().to_string()),
 			)),
-			is_profile_completed: false,
 			created_at: None,
 			updated_at: None,
 		}
@@ -63,6 +66,5 @@ pub struct UsersSetNewPasswordSchema {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UsersActiveInactiveSchema {
-	pub email: String,
 	pub is_active: bool,
 }

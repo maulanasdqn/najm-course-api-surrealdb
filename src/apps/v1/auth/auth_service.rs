@@ -83,7 +83,7 @@ impl AuthService {
 					},
 				};
 
-				if let Err(_) = auth_repo.query_store_user_data(user) {
+				if let Err(_) = auth_repo.query_store_user(user).await {
 					return common_response(StatusCode::BAD_REQUEST, "Failed to store data");
 				}
 
@@ -130,20 +130,37 @@ impl AuthService {
 
 		let otp = generate_otp::OtpManager::generate_otp();
 
-		auth_repo
+		match auth_repo
 			.query_store_otp(new_user.email.clone(), otp.clone())
-			.unwrap();
+			.await
+		{
+			Ok(_) => {
+				let message = format!("your otp code is {}", otp);
+				if let Err(err) = send_email(&new_user.email, "OTP Verification", &message) {
+					return common_response(
+						StatusCode::INTERNAL_SERVER_ERROR,
+						&err.to_string(),
+					);
+				}
+			}
+			Err(err) => {
+				return common_response(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string());
+			}
+		}
 
-		let message = format!("your otp code is {}", otp);
+		let role_thing = Thing::from((
+			ResourceEnum::Roles.to_string(),
+			Id::String(Uuid::new_v4().to_string()),
+		));
 
-		send_email(&new_user.email.clone(), "OTP Verification", &message).unwrap();
-
-		let role_thing =
-			Thing::from((ResourceEnum::Roles.to_string(), Id::String("".to_string())));
+		let user_thing = Thing::from((
+			ResourceEnum::Users.to_string(),
+			Id::String(Uuid::new_v4().to_string()),
+		));
 
 		match user_repo
 			.query_create_user(UsersSchema {
-				id: Uuid::new_v4().to_string(),
+				id: user_thing,
 				email: new_user.email.clone(),
 				fullname: new_user.fullname.clone(),
 				password: new_user.password.clone(),
@@ -160,7 +177,7 @@ impl AuthService {
 			})
 			.await
 		{
-			Ok(_) => common_response(StatusCode::CREATED, "Registration successful"),
+			Ok(msg) => common_response(StatusCode::CREATED, &msg),
 			Err(err) => {
 				common_response(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string())
 			}
@@ -174,7 +191,7 @@ impl AuthService {
 		let repository = AuthRepository::new(state);
 		let otp = generate_otp::OtpManager::generate_otp();
 		let message = format!("Your OTP code is {}", otp);
-		match repository.query_store_otp(payload.email.clone(), otp) {
+		match repository.query_store_otp(payload.email.clone(), otp).await {
 			Ok(_) => match send_email(&payload.email, "OTP Verification", &message) {
 				Ok(_) => common_response(StatusCode::OK, "OTP resent successfully"),
 				Err(err) => common_response(StatusCode::BAD_REQUEST, &err.to_string()),
@@ -224,25 +241,26 @@ impl AuthService {
 		let user_repo = UsersRepository::new(state);
 		let auth_repo = AuthRepository::new(state);
 
-		match auth_repo.query_get_stored_otp(payload.email.clone()) {
+		match auth_repo.query_get_stored_otp(payload.email.clone()).await {
 			Ok(stored_otp) => {
 				let user_otp = payload.otp;
 				let is_otp_valid = stored_otp == user_otp;
 				if is_otp_valid {
 					match user_repo
-						.query_active_inactive_user(UsersActiveInactiveSchema {
-							email: payload.email.clone(),
-							is_active: true,
-						})
+						.query_active_inactive_user(
+							payload.email.clone(),
+							UsersActiveInactiveSchema { is_active: true },
+						)
 						.await
 					{
 						Ok(_) => {
-							if let Err(e) =
-								auth_repo.query_delete_stored_otp(payload.email.clone())
+							if let Err(e) = auth_repo
+								.query_delete_stored_otp(payload.email.clone())
+								.await
 							{
 								return common_response(
 									StatusCode::INTERNAL_SERVER_ERROR,
-									&format!("Failed to delete OTP: {}", e),
+									&e.to_string(),
 								);
 							}
 							common_response(StatusCode::OK, "Email verified successfully")
@@ -250,7 +268,10 @@ impl AuthService {
 						Err(err) => common_response(StatusCode::BAD_REQUEST, &err.to_string()),
 					}
 				} else {
-					if let Err(e) = auth_repo.query_delete_stored_otp(payload.email.clone()) {
+					if let Err(e) = auth_repo
+						.query_delete_stored_otp(payload.email.clone())
+						.await
+					{
 						return common_response(
 							StatusCode::INTERNAL_SERVER_ERROR,
 							&format!("Failed to delete OTP: {}", e),
