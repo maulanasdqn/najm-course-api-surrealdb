@@ -14,10 +14,11 @@ pub use auth_service::*;
 
 pub fn auth_router() -> Router {
 	Router::new()
-		.route("/login", post(auth_controller::post_login))
-		.route("/register", post(auth_controller::post_register))
-		.route("/verify", post(auth_controller::post_verify_email))
-		.route("/resend", post(auth_controller::post_resend_otp))
 		.route("/forgot", post(auth_controller::post_forgot_password))
+		.route("/login", post(auth_controller::post_login))
 		.route("/new-password", post(auth_controller::post_new_password))
+		.route("/refresh", post(auth_controller::post_refresh_token))
+		.route("/register", post(auth_controller::post_register))
+		.route("/send-otp", post(auth_controller::post_resend_otp))
+		.route("/verify-email", post(auth_controller::post_verify_email))
 }

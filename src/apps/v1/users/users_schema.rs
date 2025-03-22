@@ -60,7 +60,6 @@ impl Default for UsersSchema {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UsersSetNewPasswordSchema {
-	pub email: String,
 	pub password: String,
 }
 

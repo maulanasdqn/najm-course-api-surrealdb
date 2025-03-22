@@ -29,6 +29,22 @@ pub fn encode_access_token(sub: String) -> Result<String, StatusCode> {
 	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
+pub fn encode_reset_password_token(sub: String) -> Result<String, StatusCode> {
+	let env = Env::new();
+	let secret: String = env.access_token_secret;
+	let now = Utc::now();
+	let expire: TimeDelta = Duration::minutes(5);
+	let exp: usize = (now + expire).timestamp() as usize;
+	let iat: usize = now.timestamp() as usize;
+	let claim = Claims { iat, exp, sub };
+	encode(
+		&Header::default(),
+		&claim,
+		&EncodingKey::from_secret(secret.as_ref()),
+	)
+	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
 pub fn decode_access_token(
 	jwt_token: &str,
 ) -> Result<TokenData<Claims>, StatusCode> {

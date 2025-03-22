@@ -1,6 +1,6 @@
 use super::{
-	AuthLoginRequestDto, AuthRegisterRequestDto, AuthResendOtpRequestDto, AuthService,
-	AuthVerifyEmailRequestDto,
+	AuthLoginRequestDto, AuthRefreshTokenRequestDto, AuthRegisterRequestDto,
+	AuthResendOtpRequestDto, AuthService, AuthVerifyEmailRequestDto,
 };
 use crate::{v1::AuthLoginResponsetDto, AppState};
 use crate::{AuthNewPasswordRequestDto, MessageResponseDto, ResponseSuccessDto};
@@ -42,7 +42,7 @@ pub async fn post_register(
 
 #[utoipa::path(
     post,
-    path = "/v1/auth/verify",
+    path = "/v1/auth/verify-email",
     request_body = AuthVerifyEmailRequestDto,
     responses(
         (status = 200, description = "Verify email successful", body = MessageResponseDto),
@@ -59,7 +59,7 @@ pub async fn post_verify_email(
 
 #[utoipa::path(
     post,
-    path = "/v1/auth/resend",
+    path = "/v1/auth/send-otp",
     request_body = AuthResendOtpRequestDto,
     responses(
         (status = 200, description = "Resend otp successful", body = MessageResponseDto),
@@ -106,4 +106,20 @@ pub async fn post_new_password(
 	Json(payload): Json<AuthNewPasswordRequestDto>,
 ) -> impl IntoResponse {
 	AuthService::mutation_new_password(payload, &state).await
+}
+
+#[utoipa::path(
+    post,
+    path = "/v1/auth/refresh",
+    request_body = AuthRefreshTokenRequestDto,
+    responses(
+        (status = 200, description = "Refresh token request successful", body = MessageResponseDto),
+        (status = 401, description = "Refresh token request failed", body = MessageResponseDto)
+    ),
+    tag = "Authentication"
+)]
+pub async fn post_refresh_token(
+	Json(payload): Json<AuthRefreshTokenRequestDto>,
+) -> impl IntoResponse {
+	AuthService::mutation_refresh_token(payload).await
 }

@@ -1,5 +1,5 @@
 use super::{UsersActiveInactiveSchema, UsersSchema, UsersSetNewPasswordSchema};
-use crate::{AppState, AuthOtpSchema, ResourceEnum};
+use crate::{get_id, AppState, ResourceEnum};
 use anyhow::{bail, Result};
 
 pub struct UsersRepository<'a> {
@@ -55,10 +55,8 @@ impl<'a> UsersRepository<'a> {
 
 	pub async fn query_update_user(&self, data: UsersSchema) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
-		let record: Option<UsersSchema> = db
-			.update((ResourceEnum::Users.to_string(), &data.id.id.to_string()))
-			.merge(data)
-			.await?;
+		let record_key = get_id(&data.id)?;
+		let record: Option<UsersSchema> = db.update(record_key).merge(data).await?;
 		match record {
 			Some(_) => Ok("Success update user".into()),
 			None => bail!("Failed to update user"),
@@ -72,29 +70,30 @@ impl<'a> UsersRepository<'a> {
 	) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
 		let user = self.query_user_by_email(email.clone()).await?;
-		let table = user.id.tb.as_str();
-		let id = user.id.id.to_string();
-		let result: Option<AuthOtpSchema> = db
-			.update((table, id))
+		let record_key = get_id(&user.id)?;
+		let record: Option<UsersSchema> = db
+			.update(record_key)
 			.merge(UsersActiveInactiveSchema {
 				is_active: data.is_active,
 			})
 			.await?;
-		match result {
-			Some(_) => Ok("Success update user".to_string()),
+		match record {
+			Some(_) => Ok("Success update user".into()),
 			None => bail!("Failed to update user"),
 		}
 	}
 
 	pub async fn query_update_password_user(
 		&self,
+		email: String,
 		data: UsersSetNewPasswordSchema,
 	) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
+		let user = self.query_user_by_email(email).await?;
+		let record_key = get_id(&user.id)?;
 		let record: Option<UsersSetNewPasswordSchema> = db
-			.update((ResourceEnum::Users.to_string(), &data.email))
+			.update(record_key)
 			.merge(UsersSetNewPasswordSchema {
-				email: data.email.clone(),
 				password: data.password.clone(),
 			})
 			.await?;

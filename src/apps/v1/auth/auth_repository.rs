@@ -1,8 +1,7 @@
-use crate::{AppState, ResourceEnum, UsersSchema};
+use super::AuthOtpSchema;
+use crate::{make_thing, AppState, ResourceEnum, UsersSchema};
 use anyhow::{anyhow, bail, Result};
 use chrono::{Duration, Utc};
-
-use super::AuthOtpSchema;
 
 pub struct AuthRepository<'a> {
 	state: &'a AppState,
@@ -14,12 +13,16 @@ impl<'a> AuthRepository<'a> {
 	}
 
 	pub async fn query_store_user(&self, user: UsersSchema) -> Result<String> {
-		let user_clone = user.clone();
+		let table = ResourceEnum::UsersCache.to_string();
+		let user_id = user.email.clone();
+		let id = make_thing(&table, &user_id);
+		let mut user_to_store = user.clone();
+		user_to_store.id = id.clone();
 		let record: Option<UsersSchema> = self
 			.state
 			.surrealdb_mem
-			.update((ResourceEnum::UsersCache.to_string(), user.email))
-			.content(user_clone)
+			.create((table, user_id))
+			.content(user_to_store)
 			.await?;
 		match record {
 			Some(_) => Ok("Success store user data".to_string()),
@@ -52,34 +55,32 @@ impl<'a> AuthRepository<'a> {
 	}
 
 	pub async fn query_get_stored_otp(&self, email: String) -> Result<u32> {
-		let otp: Option<AuthOtpSchema> = self
-			.state
-			.surrealdb_mem
-			.select((ResourceEnum::OtpCache.to_string(), &email))
-			.await?;
-		match otp {
-			Some(data) => {
-				if Utc::now() > data.expires_at {
-					let _: Option<AuthOtpSchema> = self
+		let table = ResourceEnum::OtpCache.to_string();
+		let key = (table.as_str(), email.as_str());
+		let result: Option<AuthOtpSchema> = self.state.surrealdb_mem.select(key).await?;
+		match result {
+			Some(data) => match Utc::now() > data.expires_at {
+				true => {
+					let _ = self
 						.state
 						.surrealdb_mem
-						.delete((ResourceEnum::OtpCache.to_string(), &email))
+						.delete::<Option<AuthOtpSchema>>(key)
 						.await?;
 					Err(anyhow!("OTP expired"))
-				} else {
-					Ok(data.otp)
 				}
-			}
-			None => Err(anyhow!("No stored OTP found")),
+				false => Ok(data.otp),
+			},
+			None => bail!("No stored OTP found"),
 		}
 	}
 
 	pub async fn query_store_otp(&self, email: String, otp: u32) -> Result<String> {
-		let expires_at = Utc::now() + Duration::seconds(300); // 5 menit
+		let expires_at = Utc::now() + Duration::seconds(300);
+		let table = ResourceEnum::OtpCache.to_string();
 		let record: Option<AuthOtpSchema> = self
 			.state
 			.surrealdb_mem
-			.create((ResourceEnum::OtpCache.to_string(), email))
+			.create((table.as_str(), email.as_str()))
 			.content(AuthOtpSchema { otp, expires_at })
 			.await?;
 		match record {
@@ -89,7 +90,7 @@ impl<'a> AuthRepository<'a> {
 	}
 
 	pub async fn query_delete_stored_otp(&self, email: String) -> Result<String> {
-		let record: Option<String> = self
+		let record: Option<AuthOtpSchema> = self
 			.state
 			.surrealdb_mem
 			.delete((ResourceEnum::OtpCache.to_string(), email))

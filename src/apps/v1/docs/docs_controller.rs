@@ -3,8 +3,8 @@ use crate::{
 		auth, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto,
 		AuthVerifyEmailRequestDto,
 	},
-	AuthNewPasswordRequestDto, MessageResponseDto, MetaRequestDto, MetaResponseDto,
-	ResponseSuccessDto,
+	AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto,
+	MetaRequestDto, MetaResponseDto, ResponseSuccessDto, TokenDto,
 };
 
 use utoipa::{
@@ -19,6 +19,8 @@ use utoipa::{
      auth::auth_controller::post_register,
      auth::auth_controller::post_verify_email,
      auth::auth_controller::post_resend_otp,
+     auth::auth_controller::post_refresh_token,
+     auth::auth_controller::post_forgot_password,
      auth::auth_controller::post_new_password
     ),
     components(
@@ -31,6 +33,8 @@ use utoipa::{
            AuthVerifyEmailRequestDto,
            AuthResendOtpRequestDto,
            AuthNewPasswordRequestDto,
+           AuthRefreshTokenRequestDto,
+           ResponseSuccessDto<TokenDto>,
            ResponseSuccessDto<AuthLoginResponsetDto>,
         )
     ),

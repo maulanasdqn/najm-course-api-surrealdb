@@ -98,6 +98,12 @@ pub struct AuthResendOtpRequestDto {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
+pub struct AuthRefreshTokenRequestDto {
+	#[validate(length(min = 1, message = "Refresh token cannot be empty"))]
+	pub refresh_token: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct AuthNewPasswordRequestDto {
 	pub token: String,
 	#[validate(length(
