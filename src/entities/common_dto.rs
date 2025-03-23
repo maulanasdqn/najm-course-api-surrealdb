@@ -48,3 +48,8 @@ pub struct AppState {
 	pub surrealdb_ws: SurrealWsClient,
 	pub surrealdb_mem: SurrealMemClient,
 }
+
+#[derive(Debug, serde::Deserialize)]
+pub struct CountResult {
+	pub count: u64,
+}

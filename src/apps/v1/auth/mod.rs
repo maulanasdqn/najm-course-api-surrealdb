@@ -7,6 +7,11 @@ pub mod auth_repository;
 pub mod auth_schema;
 pub mod auth_service;
 
+#[cfg(test)]
+pub mod auth_controller_test;
+#[cfg(test)]
+pub mod auth_repository_test;
+
 pub use auth_dto::*;
 pub use auth_repository::*;
 pub use auth_schema::*;

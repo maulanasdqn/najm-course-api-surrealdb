@@ -6,10 +6,7 @@ use utoipa::ToSchema;
 use validator::Validate;
 
 lazy_static! {
-	static ref PASSWORD_REGEX: Regex = Regex::new(
-		r"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
-	)
-	.unwrap();
+	static ref PASSWORD_REGEX: Regex = Regex::new(r"^[A-Za-z\d@$!%*?&]{8,}$").unwrap();
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
@@ -106,10 +103,7 @@ pub struct AuthRefreshTokenRequestDto {
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct AuthNewPasswordRequestDto {
 	pub token: String,
-	#[validate(length(
-		min = 8,
-		message = "Password must have at least 8 characters"
-	))]
+	#[validate(length(min = 1, message = "Token cannot be empty"))]
 	#[validate(regex(
 		path = "PASSWORD_REGEX",
 		message = "Password must include uppercase, lowercase, number, and special character"

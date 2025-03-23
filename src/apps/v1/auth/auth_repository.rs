@@ -4,7 +4,7 @@ use anyhow::{anyhow, bail, Result};
 use chrono::{Duration, Utc};
 
 pub struct AuthRepository<'a> {
-	state: &'a AppState,
+	pub state: &'a AppState,
 }
 
 impl<'a> AuthRepository<'a> {
@@ -13,6 +13,9 @@ impl<'a> AuthRepository<'a> {
 	}
 
 	pub async fn query_store_user(&self, user: UsersSchema) -> Result<String> {
+		if user.email.trim().is_empty() {
+			bail!("Email is required");
+		}
 		let table = ResourceEnum::UsersCache.to_string();
 		let user_id = user.email.clone();
 		let id = make_thing(&table, &user_id);
@@ -43,7 +46,7 @@ impl<'a> AuthRepository<'a> {
 	}
 
 	pub async fn query_delete_stored_user(&self, email: String) -> Result<String> {
-		let record: Option<String> = self
+		let record: Option<UsersSchema> = self
 			.state
 			.surrealdb_mem
 			.delete((ResourceEnum::UsersCache.to_string(), email))

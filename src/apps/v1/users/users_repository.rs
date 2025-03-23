@@ -1,5 +1,8 @@
 use super::{UsersActiveInactiveSchema, UsersSchema, UsersSetNewPasswordSchema};
-use crate::{get_id, AppState, ResourceEnum};
+use crate::{
+	get_id, AppState, CountResult, MetaRequestDto, MetaResponseDto, ResourceEnum,
+	ResponseListSuccessDto,
+};
 use anyhow::{bail, Result};
 
 pub struct UsersRepository<'a> {
@@ -11,10 +14,99 @@ impl<'a> UsersRepository<'a> {
 		Self { state }
 	}
 
+	pub async fn query_user_list(
+		&self,
+		meta: MetaRequestDto,
+	) -> Result<ResponseListSuccessDto<Vec<UsersSchema>>> {
+		let db = &self.state.surrealdb_ws;
+		let table = ResourceEnum::Users.to_string();
+
+		let page = meta.page.unwrap_or(1);
+		let per_page = meta.per_page.unwrap_or(10);
+		let start = (page - 1) * per_page;
+
+		let mut sql = format!("SELECT * FROM {}", table);
+		let mut conditions = vec!["is_deleted = false".to_string()];
+
+		if meta.search.is_some() {
+			conditions.push("string::contains(fullname, $search)".to_string());
+		}
+
+		if meta.filter_by.is_some() && meta.filter.is_some() {
+			let filter_by = meta.filter_by.as_ref().unwrap();
+			conditions.push(format!("{} = $filter", filter_by));
+		}
+
+		if !conditions.is_empty() {
+			sql.push_str(" WHERE ");
+			sql.push_str(&conditions.join(" AND "));
+		}
+
+		if let Some(sort_by) = &meta.sort_by {
+			let order = meta.order.clone().unwrap_or_else(|| "ASC".to_string());
+			sql.push_str(&format!(" ORDER BY {} {}", sort_by, order));
+		}
+
+		sql.push_str(" LIMIT $per_page START $start");
+
+		let mut query = db.query(sql);
+
+		if let Some(search) = meta.search.clone() {
+			query = query.bind(("search", search));
+		}
+
+		if let Some(filter_val) = meta.filter.clone() {
+			if let Ok(b) = filter_val.parse::<bool>() {
+				query = query.bind(("filter", b));
+			} else if let Ok(i) = filter_val.parse::<i64>() {
+				query = query.bind(("filter", i));
+			} else {
+				query = query.bind(("filter", filter_val));
+			}
+		}
+
+		query = query.bind(("per_page", per_page)).bind(("start", start));
+
+		let users: Vec<UsersSchema> = query.await?.take(0)?;
+
+		let mut count_sql =
+			format!("SELECT count() FROM {} WHERE is_deleted = false", table);
+		if meta.filter_by.is_some() && meta.filter.is_some() {
+			let filter_by = meta.filter_by.as_ref().unwrap();
+			count_sql.push_str(&format!(" AND {} = $filter", filter_by));
+		}
+
+		let mut count_query = db.query(count_sql);
+
+		if let Some(filter_val) = meta.filter.clone() {
+			if let Ok(b) = filter_val.parse::<bool>() {
+				count_query = count_query.bind(("filter", b));
+			} else if let Ok(i) = filter_val.parse::<i64>() {
+				count_query = count_query.bind(("filter", i));
+			} else {
+				count_query = count_query.bind(("filter", filter_val));
+			}
+		}
+
+		let count_result: Vec<CountResult> = count_query.await?.take(0)?;
+		let total = count_result.first().map(|c| c.count);
+
+		let meta_res = MetaResponseDto {
+			page: Some(page),
+			per_page: Some(per_page),
+			total,
+		};
+
+		Ok(ResponseListSuccessDto {
+			data: users,
+			meta: Some(meta_res),
+		})
+	}
+
 	pub async fn query_user_by_email(&self, email: String) -> Result<UsersSchema> {
 		let db = &self.state.surrealdb_ws;
 		let sql = format!(
-			"SELECT * FROM {} WHERE email = $email",
+			"SELECT * FROM {} WHERE email = $email AND is_deleted = false",
 			ResourceEnum::Users.to_string()
 		);
 		let mut response: Vec<UsersSchema> = db
@@ -22,22 +114,20 @@ impl<'a> UsersRepository<'a> {
 			.bind(("email", email.clone()))
 			.await?
 			.take(0)?;
-
-		if let Some(user) = response.pop() {
-			Ok(user)
-		} else {
-			bail!("User not found")
+		match response.pop() {
+			Some(user) => Ok(user),
+			None => bail!("User not found"),
 		}
 	}
 
 	pub async fn query_user_by_id(&self, id: String) -> Result<UsersSchema> {
 		let db = &self.state.surrealdb_ws;
-		let result = db
+		let result: Option<UsersSchema> = db
 			.select((ResourceEnum::Users.to_string(), id.clone()))
 			.await?;
 		match result {
-			Some(response) => Ok(response),
-			None => bail!("User not found"),
+			Some(response) if !response.is_deleted => Ok(response),
+			_ => bail!("User not found"),
 		}
 	}
 
@@ -100,6 +190,20 @@ impl<'a> UsersRepository<'a> {
 		match record {
 			Some(_) => Ok("Success update password user".into()),
 			None => bail!("Failed to update password user"),
+		}
+	}
+
+	pub async fn query_delete_user(&self, email: String) -> Result<String> {
+		let db = &self.state.surrealdb_ws;
+		let user = self.query_user_by_email(email.clone()).await?;
+		let record_key = get_id(&user.id)?;
+		let record: Option<UsersSchema> = db
+			.update(record_key)
+			.merge(serde_json::json!({ "is_deleted": true }))
+			.await?;
+		match record {
+			Some(_) => Ok("Success delete user".into()),
+			None => bail!("Failed to delete user"),
 		}
 	}
 }

@@ -72,9 +72,20 @@ impl AuthService {
 				let response = ResponseSuccessDto {
 					data: AuthLoginResponsetDto {
 						user: UsersItemDto {
+							id: user.id.id.to_raw(),
 							fullname: user.fullname.clone(),
 							email: user.email.clone(),
-							is_active: user.is_active,
+							is_active: user.is_active.clone(),
+							avatar: user.avatar.clone(),
+							phone_number: user.phone_number.clone(),
+							referral_code: user.referral_code.clone(),
+							referred_by: user.referred_by.clone(),
+							identity_number: user.identity_number.clone(),
+							student_type: user.student_type.clone(),
+							religion: user.religion.clone(),
+							gender: user.gender.clone(),
+							birthdate: user.birthdate.clone(),
+							is_profile_completed: user.is_profile_completed.clone(),
 						},
 						token: TokenDto {
 							access_token,
@@ -97,6 +108,10 @@ impl AuthService {
 		payload: AuthRegisterRequestDto,
 		state: &AppState,
 	) -> Response {
+		if let Err((status, message)) = validate_request(&payload) {
+			return common_response(status, &message);
+		}
+
 		let user_repo = UsersRepository::new(state);
 		let auth_repo = AuthRepository::new(state);
 
@@ -188,6 +203,9 @@ impl AuthService {
 		payload: AuthResendOtpRequestDto,
 		state: &AppState,
 	) -> Response {
+		if let Err((status, message)) = validate_request(&payload) {
+			return common_response(status, &message);
+		}
 		let repository = AuthRepository::new(state);
 		let otp = generate_otp::OtpManager::generate_otp();
 		let message = format!("Your OTP code is {}", otp);
@@ -203,6 +221,9 @@ impl AuthService {
 	pub async fn mutation_refresh_token(
 		payload: AuthRefreshTokenRequestDto,
 	) -> Response {
+		if let Err((status, message)) = validate_request(&payload) {
+			return common_response(status, &message);
+		}
 		let email = match decode_refresh_token(&payload.refresh_token) {
 			Ok(token) => token.claims.sub,
 			Err(_) => {
@@ -244,6 +265,9 @@ impl AuthService {
 		payload: AuthResendOtpRequestDto,
 		state: &AppState,
 	) -> Response {
+		if let Err((status, message)) = validate_request(&payload) {
+			return common_response(status, &message);
+		}
 		let user_repo = UsersRepository::new(state);
 		if user_repo
 			.query_user_by_email(payload.email.clone())
@@ -278,6 +302,9 @@ impl AuthService {
 		payload: AuthVerifyEmailRequestDto,
 		state: &AppState,
 	) -> Response {
+		if let Err((status, message)) = validate_request(&payload) {
+			return common_response(status, &message);
+		}
 		let user_repo = UsersRepository::new(state);
 		let auth_repo = AuthRepository::new(state);
 		let email = payload.email.clone();
@@ -314,9 +341,25 @@ impl AuthService {
 		payload: AuthNewPasswordRequestDto,
 		state: &AppState,
 	) -> Response {
+		if let Err((status, message)) = validate_request(&payload) {
+			return common_response(status, &message);
+		}
 		let user_repo = UsersRepository::new(state);
-		let email = extract_email_token(payload.token).unwrap();
-		let password = hash_password(&payload.password).unwrap();
+		let email = match extract_email_token(payload.token.clone()) {
+			Some(email) => email,
+			None => {
+				return common_response(StatusCode::BAD_REQUEST, "Invalid or missing token");
+			}
+		};
+		let password = match hash_password(&payload.password) {
+			Ok(p) => p,
+			Err(_) => {
+				return common_response(
+					StatusCode::INTERNAL_SERVER_ERROR,
+					"Failed to hash password",
+				);
+			}
+		};
 		match user_repo
 			.query_update_password_user(email, UsersSetNewPasswordSchema { password })
 			.await
