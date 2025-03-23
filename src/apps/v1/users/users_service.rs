@@ -53,7 +53,6 @@ impl UsersService {
 			return common_response(status, &message);
 		}
 		let repo = UsersRepository::new(state);
-
 		if repo
 			.query_user_by_email(new_user.email.clone())
 			.await
@@ -61,6 +60,7 @@ impl UsersService {
 		{
 			return common_response(StatusCode::BAD_REQUEST, "User already exists");
 		}
+		let role_thing = make_thing(&ResourceEnum::Roles.to_string(), &new_user.role_id);
 		match repo
 			.query_create_user(UsersSchema {
 				email: new_user.email.clone(),
@@ -71,6 +71,7 @@ impl UsersService {
 				referred_by: new_user.referred_by.clone(),
 				student_type: new_user.student_type.clone(),
 				is_active: new_user.is_active.clone(),
+				role: role_thing,
 				is_profile_completed: false,
 				..Default::default()
 			})

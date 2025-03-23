@@ -22,6 +22,20 @@ pub struct MetaRequestDto {
 	pub filter_by: Option<String>,
 }
 
+impl Default for MetaRequestDto {
+	fn default() -> Self {
+		MetaRequestDto {
+			page: Some(1),
+			per_page: Some(10),
+			search: None,
+			sort_by: None,
+			order: None,
+			filter: None,
+			filter_by: None,
+		}
+	}
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, IntoParams)]
 pub struct MetaResponseDto {
 	pub page: Option<u64>,

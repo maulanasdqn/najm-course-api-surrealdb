@@ -40,6 +40,7 @@ pub struct UsersCreateRequestDto {
 	pub referral_code: Option<String>,
 	pub referred_by: Option<String>,
 	pub is_active: bool,
+	pub role_id: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
@@ -75,6 +76,7 @@ pub struct UsersUpdateRequestDto {
 	pub gender: Option<String>,
 	pub birthdate: Option<String>,
 	pub avatar: Option<String>,
+	pub role_id: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]

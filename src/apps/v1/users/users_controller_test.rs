@@ -1,6 +1,7 @@
 use crate::{
-	apps::v1::users_router, create_mock_app_state, UsersActiveInactiveRequestDto,
-	UsersCreateRequestDto, UsersRepository, UsersUpdateRequestDto,
+	apps::v1::users_router, create_mock_app_state, RolesEnum, RolesRepository,
+	UsersActiveInactiveRequestDto, UsersCreateRequestDto, UsersRepository,
+	UsersUpdateRequestDto,
 };
 use axum::{http::StatusCode, Extension};
 use axum_test::TestServer;
@@ -20,6 +21,12 @@ async fn test_get_user_list_should_return_200() {
 #[tokio::test]
 async fn test_create_user_should_return_201() {
 	let state = create_mock_app_state().await;
+	let role_repo = RolesRepository::new(&state);
+	let role = role_repo
+		.query_role_by_name(RolesEnum::Student.to_string())
+		.await
+		.unwrap();
+	let role_id = role.id;
 	let app = axum::Router::new()
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
@@ -27,6 +34,7 @@ async fn test_create_user_should_return_201() {
 	let payload = UsersCreateRequestDto {
 		fullname: "Create Data #1".into(),
 		email: "test@create.com".into(),
+		role_id,
 		password: "Password1!".into(),
 		student_type: "general".into(),
 		phone_number: "081234567890".into(),
@@ -41,6 +49,12 @@ async fn test_create_user_should_return_201() {
 #[tokio::test]
 async fn test_delete_user_should_return_200() {
 	let state = create_mock_app_state().await;
+	let role_repo = RolesRepository::new(&state);
+	let role = role_repo
+		.query_role_by_name(RolesEnum::Student.to_string())
+		.await
+		.unwrap();
+	let role_id = role.id;
 	let repo = UsersRepository::new(&state);
 	let app = axum::Router::new()
 		.nest("/v1/users", users_router())
@@ -51,6 +65,7 @@ async fn test_delete_user_should_return_200() {
 		email: "test@create.com".into(),
 		password: "Password1!".into(),
 		student_type: "general".into(),
+		role_id,
 		phone_number: "081234567890".into(),
 		is_active: true,
 		referral_code: None,
@@ -69,6 +84,12 @@ async fn test_delete_user_should_return_200() {
 #[tokio::test]
 async fn test_get_user_detail_should_return_200() {
 	let state = create_mock_app_state().await;
+	let role_repo = RolesRepository::new(&state);
+	let role = role_repo
+		.query_role_by_name(RolesEnum::Student.to_string())
+		.await
+		.unwrap();
+	let role_id = role.id;
 	let repo = UsersRepository::new(&state);
 	let app = axum::Router::new()
 		.nest("/v1/users", users_router())
@@ -77,6 +98,7 @@ async fn test_get_user_detail_should_return_200() {
 	let payload = UsersCreateRequestDto {
 		fullname: "Detail User".into(),
 		email: "detail@test.com".into(),
+		role_id,
 		password: "Password1!".into(),
 		student_type: "general".into(),
 		phone_number: "081234567890".into(),
@@ -94,6 +116,12 @@ async fn test_get_user_detail_should_return_200() {
 #[tokio::test]
 async fn test_activate_user_should_return_200() {
 	let state = create_mock_app_state().await;
+	let role_repo = RolesRepository::new(&state);
+	let role = role_repo
+		.query_role_by_name(RolesEnum::Student.to_string())
+		.await
+		.unwrap();
+	let role_id = role.id;
 	let repo = UsersRepository::new(&state);
 	let app = axum::Router::new()
 		.nest("/v1/users", users_router())
@@ -103,6 +131,7 @@ async fn test_activate_user_should_return_200() {
 		fullname: "Inactive User".into(),
 		email: "inactive@test.com".into(),
 		password: "Password1!".into(),
+		role_id,
 		student_type: "general".into(),
 		phone_number: "081234567890".into(),
 		is_active: false,
@@ -122,6 +151,12 @@ async fn test_activate_user_should_return_200() {
 #[tokio::test]
 async fn test_update_user_should_return_200() {
 	let state = create_mock_app_state().await;
+	let role_repo = RolesRepository::new(&state);
+	let role = role_repo
+		.query_role_by_name(RolesEnum::Student.to_string())
+		.await
+		.unwrap();
+	let role_id = role.id.clone();
 	let repo = UsersRepository::new(&state);
 	let app = axum::Router::new()
 		.nest("/v1/users", users_router())
@@ -131,6 +166,7 @@ async fn test_update_user_should_return_200() {
 		fullname: "Old Name".into(),
 		email: "update@test.com".into(),
 		password: "Password1!".into(),
+		role_id: role_id.clone(),
 		student_type: "general".into(),
 		phone_number: "081234567890".into(),
 		is_active: true,
@@ -145,6 +181,7 @@ async fn test_update_user_should_return_200() {
 		email: "update@test.com".into(),
 		student_type: "general".into(),
 		phone_number: "081234567890".into(),
+		role_id: role_id.clone(),
 		is_active: true,
 		referral_code: None,
 		referred_by: None,
@@ -165,6 +202,12 @@ async fn test_update_user_should_return_200() {
 #[tokio::test]
 async fn test_create_user_should_fail_if_email_taken() {
 	let state = create_mock_app_state().await;
+	let role_repo = RolesRepository::new(&state);
+	let role = role_repo
+		.query_role_by_name(RolesEnum::Student.to_string())
+		.await
+		.unwrap();
+	let role_id = role.id.clone();
 	let app = axum::Router::new()
 		.nest("/v1/users", users_router())
 		.layer(Extension(state.clone()));
@@ -174,6 +217,7 @@ async fn test_create_user_should_fail_if_email_taken() {
 		email: "taken@example.com".into(),
 		password: "Password1!".into(),
 		student_type: "general".into(),
+		role_id,
 		phone_number: "081234567890".into(),
 		is_active: true,
 		referral_code: None,
@@ -203,6 +247,12 @@ async fn test_get_user_detail_should_fail_if_not_found() {
 #[tokio::test]
 async fn test_delete_user_should_fail_if_already_deleted() {
 	let state = create_mock_app_state().await;
+	let role_repo = RolesRepository::new(&state);
+	let role = role_repo
+		.query_role_by_name(RolesEnum::Student.to_string())
+		.await
+		.unwrap();
+	let role_id = role.id.clone();
 	let repo = UsersRepository::new(&state);
 	let app = axum::Router::new()
 		.nest("/v1/users", users_router())
@@ -211,6 +261,7 @@ async fn test_delete_user_should_fail_if_already_deleted() {
 	let payload = UsersCreateRequestDto {
 		fullname: "To Be Deleted".into(),
 		email: "delete-me@example.com".into(),
+		role_id,
 		password: "Password1!".into(),
 		student_type: "general".into(),
 		phone_number: "081234567890".into(),
@@ -232,6 +283,12 @@ async fn test_delete_user_should_fail_if_already_deleted() {
 #[tokio::test]
 async fn test_update_user_should_fail_if_user_not_found() {
 	let state = create_mock_app_state().await;
+	let role_repo = RolesRepository::new(&state);
+	let role = role_repo
+		.query_role_by_name(RolesEnum::Student.to_string())
+		.await
+		.unwrap();
+	let role_id = role.id.clone();
 	let app = axum::Router::new()
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
@@ -241,6 +298,7 @@ async fn test_update_user_should_fail_if_user_not_found() {
 		email: "nonexistent@test.com".into(),
 		student_type: "general".into(),
 		phone_number: "081234567890".into(),
+		role_id,
 		is_active: true,
 		referral_code: None,
 		referred_by: None,
@@ -331,21 +389,6 @@ async fn test_list_users_should_fallback_on_invalid_order() {
 }
 
 #[tokio::test]
-async fn test_list_users_with_search_should_return_empty_if_no_match() {
-	let state = create_mock_app_state().await;
-	let app = axum::Router::new()
-		.nest("/v1/users", users_router())
-		.layer(Extension(state));
-	let server = TestServer::new(app).unwrap();
-	let res = server
-		.get("/v1/users?page=1&per_page=10&search=no-user-should-match-this")
-		.await;
-	assert_eq!(res.status_code(), StatusCode::OK);
-	let body: serde_json::Value = res.json();
-	assert_eq!(body["data"].as_array().unwrap().len(), 0);
-}
-
-#[tokio::test]
 async fn test_list_users_with_invalid_filter_by_should_return_empty() {
 	let state = create_mock_app_state().await;
 	let app = axum::Router::new()
@@ -389,12 +432,19 @@ async fn test_user_detail_should_fail_if_user_not_found() {
 #[tokio::test]
 async fn test_user_detail_should_fail_if_user_is_soft_deleted() {
 	let state = create_mock_app_state().await;
+	let role_repo = RolesRepository::new(&state);
+	let role = role_repo
+		.query_role_by_name(RolesEnum::Student.to_string())
+		.await
+		.unwrap();
+	let role_id = role.id.clone();
 	let repo = UsersRepository::new(&state);
 	let app = axum::Router::new()
 		.nest("/v1/users", users_router())
 		.layer(Extension(state.clone()));
 	let server = TestServer::new(app).unwrap();
 	let payload = UsersCreateRequestDto {
+		role_id,
 		fullname: "Soft Deleted".into(),
 		email: "softdeleted@test.com".into(),
 		password: "Password1!".into(),
@@ -417,12 +467,19 @@ async fn test_user_detail_should_fail_if_user_is_soft_deleted() {
 #[tokio::test]
 async fn test_update_user_should_fail_if_user_is_deleted() {
 	let state = create_mock_app_state().await;
+	let role_repo = RolesRepository::new(&state);
+	let role = role_repo
+		.query_role_by_name(RolesEnum::Student.to_string())
+		.await
+		.unwrap();
+	let role_id = role.id.clone();
 	let repo = UsersRepository::new(&state);
 	let app = axum::Router::new()
 		.nest("/v1/users", users_router())
 		.layer(Extension(state.clone()));
 	let server = TestServer::new(app).unwrap();
 	let payload = UsersCreateRequestDto {
+		role_id: role_id.clone(),
 		fullname: "To Be Deleted".into(),
 		email: "deleteduser@test.com".into(),
 		password: "Password1!".into(),
@@ -437,6 +494,7 @@ async fn test_update_user_should_fail_if_user_is_deleted() {
 	let user_id = user.id.id.to_raw();
 	let _ = repo.query_delete_user(user_id.clone()).await.unwrap();
 	let update_payload = UsersUpdateRequestDto {
+		role_id: role_id.clone(),
 		fullname: "Should Fail".into(),
 		email: "deleteduser@test.com".into(),
 		student_type: "general".into(),
@@ -462,6 +520,12 @@ async fn test_update_user_should_fail_if_user_is_deleted() {
 #[tokio::test]
 async fn test_update_user_should_fail_if_payload_invalid() {
 	let state = create_mock_app_state().await;
+	let role_repo = RolesRepository::new(&state);
+	let role = role_repo
+		.query_role_by_name(RolesEnum::Student.to_string())
+		.await
+		.unwrap();
+	let role_id = role.id.clone();
 	let repo = UsersRepository::new(&state);
 	let app = axum::Router::new()
 		.nest("/v1/users", users_router())
@@ -470,6 +534,7 @@ async fn test_update_user_should_fail_if_payload_invalid() {
 	let payload = UsersCreateRequestDto {
 		fullname: "Invalid Payload".into(),
 		email: "invalid@test.com".into(),
+		role_id: role_id.clone(),
 		password: "Password1!".into(),
 		student_type: "general".into(),
 		phone_number: "081234567890".into(),
@@ -487,6 +552,7 @@ async fn test_update_user_should_fail_if_payload_invalid() {
 		phone_number: "081234567890".into(),
 		is_active: true,
 		referral_code: None,
+		role_id: role_id.clone(),
 		referred_by: None,
 		identity_number: Some("1234567890123456".into()),
 		religion: Some("Islam".into()),

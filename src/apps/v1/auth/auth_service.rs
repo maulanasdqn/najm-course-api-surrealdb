@@ -6,15 +6,13 @@ use super::{
 use crate::{
 	common_response, decode_refresh_token, encode_access_token, encode_refresh_token,
 	encode_reset_password_token, extract_email_token, generate_otp, get_iso_date,
-	hash_password, send_email, success_response, validate_request, verify_password,
-	AppState, Env, ResourceEnum, ResponseSuccessDto, UsersActiveInactiveSchema,
-	UsersItemDto, UsersRepository, UsersSchema, UsersSetNewPasswordSchema,
+	hash_password, make_thing, send_email, success_response, validate_request,
+	verify_password, AppState, Env, ResourceEnum, ResponseSuccessDto, RolesEnum,
+	RolesRepository, UsersActiveInactiveSchema, UsersItemDto, UsersRepository,
+	UsersSchema, UsersSetNewPasswordSchema,
 };
 use axum::{http::StatusCode, response::Response};
-use surrealdb::{
-	sql::{Id, Thing},
-	Uuid,
-};
+use surrealdb::Uuid;
 
 pub struct AuthService;
 
@@ -114,6 +112,12 @@ impl AuthService {
 
 		let user_repo = UsersRepository::new(state);
 		let auth_repo = AuthRepository::new(state);
+		let role_repo = RolesRepository::new(state);
+
+		let role = role_repo
+			.query_role_by_name(RolesEnum::Student.to_string())
+			.await
+			.unwrap();
 
 		if user_repo
 			.query_user_by_email(payload.email.clone())
@@ -163,15 +167,11 @@ impl AuthService {
 			}
 		}
 
-		let role_thing = Thing::from((
-			ResourceEnum::Roles.to_string(),
-			Id::String(Uuid::new_v4().to_string()),
-		));
-
-		let user_thing = Thing::from((
-			ResourceEnum::Users.to_string(),
-			Id::String(Uuid::new_v4().to_string()),
-		));
+		let role_thing = make_thing(&ResourceEnum::Roles.to_string(), &role.id);
+		let user_thing = make_thing(
+			&ResourceEnum::Users.to_string(),
+			&Uuid::new_v4().to_string(),
+		);
 
 		match user_repo
 			.query_create_user(UsersSchema {

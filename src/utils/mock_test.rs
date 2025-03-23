@@ -1,4 +1,5 @@
-use crate::{hash_password, AppState, UsersSchema};
+use crate::{hash_password, AppState, ResourceEnum, UsersSchema};
+use rand::Rng;
 use surrealdb::{
 	engine::{local::Mem, remote::ws::Ws},
 	opt::auth::Root,
@@ -60,7 +61,7 @@ pub fn create_test_user(
 	UsersSchema {
 		id: make_thing("app_users", &Uuid::new_v4().to_string()),
 		email: email.to_string(),
-		fullname: fullname.to_string(),
+		fullname: format!("Randomize {} {}", fullname, rand::rng().random::<u32>()),
 		password: hash_password("secret").unwrap(),
 		is_deleted: false,
 		avatar: None,
@@ -74,7 +75,7 @@ pub fn create_test_user(
 		gender: None,
 		birthdate: None,
 		is_profile_completed: false,
-		role: make_thing("roles", "user"),
+		role: make_thing(&ResourceEnum::Roles.to_string(), "user"),
 		created_at: None,
 		updated_at: None,
 	}

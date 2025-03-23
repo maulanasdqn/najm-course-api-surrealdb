@@ -1,4 +1,4 @@
-use crate::create_mock_app_state;
+use crate::{create_mock_app_state, ResourceEnum};
 use crate::{
 	make_thing, MetaRequestDto, UsersActiveInactiveSchema, UsersRepository,
 	UsersSchema, UsersSetNewPasswordSchema,
@@ -23,7 +23,7 @@ fn create_test_user(email: &str, fullname: &str, is_active: bool) -> UsersSchema
 		gender: None,
 		birthdate: None,
 		is_profile_completed: false,
-		role: make_thing("roles", "user"),
+		role: make_thing(&ResourceEnum::Roles.to_string(), "user"),
 		created_at: None,
 		updated_at: None,
 	}
