@@ -1,10 +1,11 @@
 use crate::{
 	v1::{
-		auth, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto,
-		AuthVerifyEmailRequestDto,
+		auth, users, AuthLoginRequestDto, AuthLoginResponsetDto,
+		AuthResendOtpRequestDto, AuthVerifyEmailRequestDto,
 	},
 	AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto,
-	MetaRequestDto, MetaResponseDto, ResponseSuccessDto, TokenDto,
+	MetaRequestDto, MetaResponseDto, ResponseListSuccessDto, ResponseSuccessDto,
+	TokenDto, UsersItemDto,
 };
 
 use utoipa::{
@@ -21,7 +22,13 @@ use utoipa::{
      auth::auth_controller::post_resend_otp,
      auth::auth_controller::post_refresh_token,
      auth::auth_controller::post_forgot_password,
-     auth::auth_controller::post_new_password
+     auth::auth_controller::post_new_password,
+     users::users_controller::post_create_user,
+     users::users_controller::put_update_user,
+     users::users_controller::patch_user_active_status,
+     users::users_controller::delete_user,
+     users::users_controller::get_user_by_id,
+     users::users_controller::get_user_list
     ),
     components(
         schemas(
@@ -36,6 +43,7 @@ use utoipa::{
            AuthRefreshTokenRequestDto,
            ResponseSuccessDto<TokenDto>,
            ResponseSuccessDto<AuthLoginResponsetDto>,
+           ResponseListSuccessDto<Vec<UsersItemDto>>
         )
     ),
     info(

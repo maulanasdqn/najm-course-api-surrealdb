@@ -164,9 +164,17 @@ async fn test_query_delete_user() {
 	let email = "deleteuser@example.com";
 	let user = create_test_user(email, "Delete User", true);
 	repo.query_create_user(user.clone()).await.unwrap();
-	let delete_result = repo.query_delete_user(email.to_string()).await;
+	let user_detail = repo
+		.query_user_by_email(email.to_string().clone())
+		.await
+		.unwrap();
+	let delete_result = repo
+		.query_delete_user(user_detail.id.id.to_raw().clone())
+		.await;
 	assert!(delete_result.is_ok());
-	let fetch_result = repo.query_user_by_email(email.to_string()).await;
+	let fetch_result = repo
+		.query_user_by_email(user_detail.id.id.to_raw().clone())
+		.await;
 	assert!(fetch_result.is_err());
 }
 
@@ -174,9 +182,7 @@ async fn test_query_delete_user() {
 async fn test_delete_non_existent_user_should_fail() {
 	let app_state = create_mock_app_state().await;
 	let repo = UsersRepository::new(&app_state);
-	let result = repo
-		.query_delete_user("nonexistent@example.com".to_string())
-		.await;
+	let result = repo.query_delete_user("lklklklk".to_string()).await;
 	assert!(result.is_err());
 	assert_eq!(result.unwrap_err().to_string(), "User not found");
 }
@@ -188,9 +194,24 @@ async fn test_delete_user_twice_should_fail_on_second_attempt() {
 	let email = "twice@example.com";
 	let user = create_test_user(email, "Delete Twice", true);
 	repo.query_create_user(user.clone()).await.unwrap();
-	let first = repo.query_delete_user(email.to_string()).await;
+	let first = repo.query_delete_user(user.id.id.to_raw()).await;
 	assert!(first.is_ok());
-	let second = repo.query_delete_user(email.to_string()).await;
+	let second = repo.query_delete_user(user.id.id.to_raw()).await;
 	assert!(second.is_err());
 	assert_eq!(second.unwrap_err().to_string(), "User not found");
+}
+
+#[tokio::test]
+async fn test_query_update_user_should_succeed() {
+	let state = create_mock_app_state().await;
+	let repo = UsersRepository::new(&state);
+	let mut user = create_test_user("update@example.com", "Old Name", true);
+	repo.query_create_user(user.clone()).await.unwrap();
+	user.fullname = "Updated Name".into();
+	user.phone_number = "089876543210".into();
+	let result = repo.query_update_user(user.clone()).await;
+	assert!(result.is_ok(), "Update failed: {:?}", result.err());
+	let updated = repo.query_user_by_id(user.id.id.to_raw()).await.unwrap();
+	assert_eq!(updated.fullname, "Updated Name");
+	assert_eq!(updated.phone_number, "089876543210");
 }

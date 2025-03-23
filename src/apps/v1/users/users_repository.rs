@@ -1,7 +1,7 @@
 use super::{UsersActiveInactiveSchema, UsersSchema, UsersSetNewPasswordSchema};
 use crate::{
-	get_id, AppState, CountResult, MetaRequestDto, MetaResponseDto, ResourceEnum,
-	ResponseListSuccessDto,
+	get_id, make_thing, AppState, CountResult, MetaRequestDto, MetaResponseDto,
+	ResourceEnum, ResponseListSuccessDto,
 };
 use anyhow::{bail, Result};
 
@@ -23,6 +23,11 @@ impl<'a> UsersRepository<'a> {
 
 		let page = meta.page.unwrap_or(1);
 		let per_page = meta.per_page.unwrap_or(10);
+
+		if page < 1 || per_page < 1 {
+			bail!("Invalid pagination: page and per_page must be greater than 0");
+		}
+
 		let start = (page - 1) * per_page;
 
 		let mut sql = format!("SELECT * FROM {}", table);
@@ -43,7 +48,17 @@ impl<'a> UsersRepository<'a> {
 		}
 
 		if let Some(sort_by) = &meta.sort_by {
-			let order = meta.order.clone().unwrap_or_else(|| "ASC".to_string());
+			let order = match meta
+				.order
+				.clone()
+				.unwrap_or_else(|| "ASC".to_string())
+				.to_uppercase()
+				.as_str()
+			{
+				"ASC" => "ASC",
+				"DESC" => "DESC",
+				_ => "ASC", // fallback kalau order invalid
+			};
 			sql.push_str(&format!(" ORDER BY {} {}", sort_by, order));
 		}
 
@@ -146,7 +161,16 @@ impl<'a> UsersRepository<'a> {
 	pub async fn query_update_user(&self, data: UsersSchema) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
 		let record_key = get_id(&data.id)?;
-		let record: Option<UsersSchema> = db.update(record_key).merge(data).await?;
+		let existing = self.query_user_by_id(data.id.id.to_raw()).await?;
+		if existing.is_deleted {
+			bail!("User already deleted");
+		}
+		let merged = UsersSchema {
+			password: existing.password,
+			created_at: existing.created_at,
+			..data.clone()
+		};
+		let record: Option<UsersSchema> = db.update(record_key).merge(merged).await?;
 		match record {
 			Some(_) => Ok("Success update user".into()),
 			None => bail!("Failed to update user"),
@@ -160,9 +184,30 @@ impl<'a> UsersRepository<'a> {
 	) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
 		let user = self.query_user_by_email(email.clone()).await?;
+		if user.is_deleted {
+			bail!("User not found");
+		}
 		let record_key = get_id(&user.id)?;
 		let record: Option<UsersSchema> = db
 			.update(record_key)
+			.merge(UsersActiveInactiveSchema {
+				is_active: data.is_active,
+			})
+			.await?;
+		match record {
+			Some(_) => Ok("Success update user".into()),
+			None => bail!("Failed to update user"),
+		}
+	}
+
+	pub async fn query_active_inactive_user_by_id(
+		&self,
+		id: String,
+		data: UsersActiveInactiveSchema,
+	) -> Result<String> {
+		let db = &self.state.surrealdb_ws;
+		let record: Option<UsersSchema> = db
+			.update((ResourceEnum::Users.to_string(), id))
 			.merge(UsersActiveInactiveSchema {
 				is_active: data.is_active,
 			})
@@ -193,9 +238,13 @@ impl<'a> UsersRepository<'a> {
 		}
 	}
 
-	pub async fn query_delete_user(&self, email: String) -> Result<String> {
+	pub async fn query_delete_user(&self, id: String) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
-		let user = self.query_user_by_email(email.clone()).await?;
+		let user_id = make_thing(&ResourceEnum::Users.to_string(), &id);
+		let user = self.query_user_by_id(user_id.id.to_raw()).await?;
+		if user.is_deleted {
+			bail!("User already deleted");
+		}
 		let record_key = get_id(&user.id)?;
 		let record: Option<UsersSchema> = db
 			.update(record_key)
