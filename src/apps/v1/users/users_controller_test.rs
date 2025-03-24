@@ -47,41 +47,6 @@ async fn test_create_user_should_return_201() {
 }
 
 #[tokio::test]
-async fn test_delete_user_should_return_200() {
-	let state = create_mock_app_state().await;
-	let role_repo = RolesRepository::new(&state);
-	let role = role_repo
-		.query_role_by_name(RolesEnum::Student.to_string())
-		.await
-		.unwrap();
-	let role_id = role.id;
-	let repo = UsersRepository::new(&state);
-	let app = axum::Router::new()
-		.nest("/v1/users", users_router())
-		.layer(Extension(state.clone()));
-	let server = TestServer::new(app).unwrap();
-	let payload = UsersCreateRequestDto {
-		fullname: "Create Data #1".into(),
-		email: "test@create.com".into(),
-		password: "Password1!".into(),
-		student_type: "general".into(),
-		role_id,
-		phone_number: "081234567890".into(),
-		is_active: true,
-		referral_code: None,
-		referred_by: None,
-	};
-	let create_res = server.post("/v1/users/create").json(&payload).await;
-	assert_eq!(create_res.status_code(), StatusCode::CREATED);
-	let detail_res = repo.query_user_by_email(payload.email);
-	let user_id = detail_res.await.unwrap().id.id.to_raw();
-	let delete_res = server
-		.delete(&format!("/v1/users/delete/{}", user_id))
-		.await;
-	assert_eq!(delete_res.status_code(), StatusCode::OK);
-}
-
-#[tokio::test]
 async fn test_get_user_detail_should_return_200() {
 	let state = create_mock_app_state().await;
 	let role_repo = RolesRepository::new(&state);
@@ -111,6 +76,42 @@ async fn test_get_user_detail_should_return_200() {
 	let user_id = user.id.id.to_raw();
 	let res = server.get(&format!("/v1/users/detail/{}", user_id)).await;
 	assert_eq!(res.status_code(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_delete_user_should_return_200() {
+	let state = create_mock_app_state().await;
+	let role_repo = RolesRepository::new(&state);
+	let role = role_repo
+		.query_role_by_name(RolesEnum::Student.to_string())
+		.await
+		.expect("Failed to get role");
+	let repo = UsersRepository::new(&state);
+	let app = axum::Router::new()
+		.nest("/v1/users", users_router())
+		.layer(Extension(state.clone()));
+	let server = TestServer::new(app).unwrap();
+	let payload = UsersCreateRequestDto {
+		fullname: "Test Delete Me".into(),
+		email: "test@delete-me.com".into(),
+		password: "Password1!".into(),
+		student_type: "general".into(),
+		role_id: role.id.clone(),
+		phone_number: "081234567890".into(),
+		is_active: true,
+		referral_code: None,
+		referred_by: None,
+	};
+	let create_res = server.post("/v1/users/create").json(&payload).await;
+	assert_eq!(create_res.status_code(), StatusCode::CREATED);
+	let detail_res = repo.query_user_by_email(payload.email.clone()).await;
+	assert!(detail_res.is_ok(), "User not found after creation");
+	let user = detail_res.unwrap();
+	let user_id_for_delete = user.id.id.to_raw();
+	let delete_res = server
+		.delete(&format!("/v1/users/delete/{}", user_id_for_delete))
+		.await;
+	assert_eq!(delete_res.status_code(), StatusCode::OK);
 }
 
 #[tokio::test]
