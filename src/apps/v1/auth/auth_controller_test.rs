@@ -143,8 +143,8 @@ async fn test_register_should_succeed() {
 			"fullname": "Valid User",
 			"student_type": "regular",
 			"phone_number": "0812345678",
-						"reffered_by": "Facebook",
-						"refferal_code": "KFNB"
+			"reffered_by": "Facebook",
+			"refferal_code": "KFNB"
 	});
 	let res = server.post("/v1/auth/register").json(&payload).await;
 	assert_eq!(res.status_code(), StatusCode::CREATED);
