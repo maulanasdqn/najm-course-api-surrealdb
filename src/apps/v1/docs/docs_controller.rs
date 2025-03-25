@@ -1,12 +1,7 @@
 use crate::{
 	v1::{
-		auth, users, roles, AuthLoginRequestDto, AuthLoginResponsetDto,
-		AuthResendOtpRequestDto, AuthVerifyEmailRequestDto,
-	},
-	AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto,
-	MetaRequestDto, MetaResponseDto, ResponseListSuccessDto, ResponseSuccessDto,
-	RolesItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto,
-	UsersItemDto,
+		auth, permissions, roles, users, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto
+	}, AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto, MetaRequestDto, MetaResponseDto, PermissionsItemDto, PermissionsRequestDto, ResponseListSuccessDto, ResponseSuccessDto, RolesItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto, UsersItemDto
 };
 
 use utoipa::{
@@ -34,7 +29,12 @@ use utoipa::{
      roles::roles_controller::get_role_by_id,
      roles::roles_controller::post_create_role,
      roles::roles_controller::put_update_role,
-     roles::roles_controller::delete_role
+     roles::roles_controller::delete_role,
+     permissions::permissions_controller::get_permission_list,
+     permissions::permissions_controller::get_permission_by_id,
+     permissions::permissions_controller::post_create_permission,
+     permissions::permissions_controller::put_update_permission,
+     permissions::permissions_controller::delete_permission
     ),
     components(
         schemas(
@@ -51,9 +51,15 @@ use utoipa::{
            RolesItemDto,
            RolesRequestCreateDto, 
            RolesRequestUpdateDto,
+           PermissionsRequestDto,
+           PermissionsItemDto,
            ResponseSuccessDto<AuthLoginResponsetDto>,
            ResponseListSuccessDto<Vec<RolesItemDto>>,
-           ResponseListSuccessDto<Vec<UsersItemDto>>
+           ResponseSuccessDto<RolesItemDto>,
+           ResponseListSuccessDto<Vec<UsersItemDto>>,
+           ResponseSuccessDto<UsersItemDto>,
+           ResponseListSuccessDto<Vec<PermissionsItemDto>>,
+           ResponseSuccessDto<PermissionsItemDto>
         )
     ),
     info(

@@ -16,6 +16,7 @@ pub async fn routes() -> Router {
 	let protected_routes = Router::new()
 		.nest("/users", users_router())
 		.nest("/roles", roles_router())
+		.nest("/permissions", permissions_router())
 		.layer(from_fn(auth::auth_middleware::auth_middleware));
 	Router::new().merge(public_routes).merge(protected_routes)
 }

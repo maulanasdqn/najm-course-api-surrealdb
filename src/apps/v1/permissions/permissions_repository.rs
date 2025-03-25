@@ -49,6 +49,24 @@ impl<'a> PermissionsRepository<'a> {
 		}
 	}
 
+	pub async fn query_permission_by_name(
+		&self,
+		name: String,
+	) -> Result<PermissionsSchema> {
+		let db = &self.state.surrealdb_ws;
+		let sql = format!(
+			"SELECT * FROM {} WHERE name = $name AND is_deleted = false",
+			ResourceEnum::Permissions.to_string()
+		);
+		let result: Vec<PermissionsSchema> =
+			db.query(sql).bind(("name", name.clone())).await?.take(0)?;
+		if let Some(permission) = result.into_iter().next() {
+			Ok(permission.into())
+		} else {
+			bail!("Permission not found")
+		}
+	}
+
 	pub async fn query_create_permission(
 		&self,
 		data: PermissionsSchema,

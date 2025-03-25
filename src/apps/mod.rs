@@ -1,6 +1,8 @@
 use crate::{AppState, Env, SurrealMemClient, SurrealWsClient};
 use axum::{
 	http::{header, HeaderValue, Method},
+	response::Redirect,
+	routing::get,
 	Extension, Router,
 };
 use tower_http::cors::CorsLayer;
@@ -44,6 +46,7 @@ pub async fn apps(
 		.allow_credentials(true);
 
 	Router::new()
+		.route("/", get(Redirect::to("/docs")))
 		.nest("/v1", v1::routes().await)
 		.nest("/v2", v2::routes().await)
 		.merge(SwaggerUi::new("/docs").url("/openapi.json", v1::docs_router()))
