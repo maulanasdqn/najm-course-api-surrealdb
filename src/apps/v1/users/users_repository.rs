@@ -21,8 +21,10 @@ impl<'a> UsersRepository<'a> {
 		let db = &self.state.surrealdb_ws;
 		let table = ResourceEnum::Users.to_string();
 		let mut conditions = vec!["is_deleted = false".to_string()];
-		if meta.search.is_some() {
-			conditions.push("string::contains(name, $search)".into());
+		if let Some(search) = &meta.search {
+			if !search.is_empty() {
+				conditions.push("string::contains(fullname ?? '', $search)".to_string());
+			}
 		}
 		if meta.filter_by.is_some() && meta.filter.is_some() {
 			let filter_by = meta.filter_by.as_ref().unwrap();

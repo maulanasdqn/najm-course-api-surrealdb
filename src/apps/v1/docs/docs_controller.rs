@@ -1,11 +1,12 @@
 use crate::{
 	v1::{
-		auth, users, AuthLoginRequestDto, AuthLoginResponsetDto,
+		auth, users, roles, AuthLoginRequestDto, AuthLoginResponsetDto,
 		AuthResendOtpRequestDto, AuthVerifyEmailRequestDto,
 	},
 	AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto,
 	MetaRequestDto, MetaResponseDto, ResponseListSuccessDto, ResponseSuccessDto,
-	TokenDto, UsersItemDto,
+	RolesItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto,
+	UsersItemDto,
 };
 
 use utoipa::{
@@ -28,7 +29,12 @@ use utoipa::{
      users::users_controller::patch_user_active_status,
      users::users_controller::delete_user,
      users::users_controller::get_user_by_id,
-     users::users_controller::get_user_list
+     users::users_controller::get_user_list,
+     roles::roles_controller::get_role_list,
+     roles::roles_controller::get_role_by_id,
+     roles::roles_controller::post_create_role,
+     roles::roles_controller::put_update_role,
+     roles::roles_controller::delete_role
     ),
     components(
         schemas(
@@ -42,7 +48,11 @@ use utoipa::{
            AuthNewPasswordRequestDto,
            AuthRefreshTokenRequestDto,
            ResponseSuccessDto<TokenDto>,
+           RolesItemDto,
+           RolesRequestCreateDto, 
+           RolesRequestUpdateDto,
            ResponseSuccessDto<AuthLoginResponsetDto>,
+           ResponseListSuccessDto<Vec<RolesItemDto>>,
            ResponseListSuccessDto<Vec<UsersItemDto>>
         )
     ),

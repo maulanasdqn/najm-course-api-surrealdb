@@ -19,6 +19,86 @@ async fn test_get_user_list_should_return_200() {
 }
 
 #[tokio::test]
+async fn test_list_users_should_fail_with_invalid_per_page() {
+	let state = create_mock_app_state().await;
+	let app = axum::Router::new()
+		.nest("/v1/users", users_router())
+		.layer(Extension(state));
+	let server = TestServer::new(app).unwrap();
+	let res = server.get("/v1/users?page=1&per_page=0").await;
+	assert_eq!(res.status_code(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_list_users_should_fail_with_invalid_page() {
+	let state = create_mock_app_state().await;
+	let app = axum::Router::new()
+		.nest("/v1/users", users_router())
+		.layer(Extension(state));
+	let server = TestServer::new(app).unwrap();
+	let res = server.get("/v1/users?page=0&per_page=10").await;
+	assert_eq!(res.status_code(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_list_users_should_ignore_invalid_sort_field() {
+	let state = create_mock_app_state().await;
+	let app = axum::Router::new()
+		.nest("/v1/users", users_router())
+		.layer(Extension(state));
+	let server = TestServer::new(app).unwrap();
+	let res = server
+		.get("/v1/users?page=1&per_page=10&sort_by=invalid_field")
+		.await;
+	assert_eq!(res.status_code(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_list_users_with_search_no_match_should_return_empty() {
+	let state = create_mock_app_state().await;
+	let app = axum::Router::new()
+		.nest("/v1/users", users_router())
+		.layer(Extension(state));
+	let server = TestServer::new(app).unwrap();
+	let res = server
+		.get("/v1/users?page=1&per_page=10&search=nonexistinguserxyz")
+		.await;
+	let body: serde_json::Value = res.json();
+	assert_eq!(res.status_code(), StatusCode::OK);
+	assert_eq!(body["data"].as_array().unwrap().len(), 0);
+}
+
+#[tokio::test]
+async fn test_list_users_should_return_empty_on_invalid_filter() {
+	let state = create_mock_app_state().await;
+	let app = axum::Router::new()
+		.nest("/v1/users", users_router())
+		.layer(Extension(state));
+	let server = TestServer::new(app).unwrap();
+	let res = server
+		.get("/v1/users?page=1&per_page=10&filter_by=is_active&filter=maybe")
+		.await;
+	let body: serde_json::Value = res.json();
+	assert_eq!(res.status_code(), StatusCode::OK);
+	assert_eq!(body["data"].as_array().unwrap().len(), 0);
+}
+
+#[tokio::test]
+async fn test_get_user_list_with_search_should_return_200() {
+	let state = create_mock_app_state().await;
+	let app = axum::Router::new()
+		.nest("/v1/users", users_router())
+		.layer(Extension(state));
+	let server = TestServer::new(app).unwrap();
+	let res = server
+		.get("/v1/users?page=1&per_page=10&search=maulana")
+		.await;
+	let status = res.status_code();
+	dbg!(res.text());
+	assert_eq!(status, StatusCode::OK);
+}
+
+#[tokio::test]
 async fn test_create_user_should_return_201() {
 	let state = create_mock_app_state().await;
 	let role_repo = RolesRepository::new(&state);
@@ -361,19 +441,6 @@ async fn test_list_users_should_fail_with_invalid_pagination() {
 		body.contains("Invalid pagination") || body.contains("per_page"),
 		"Expected pagination error, got: {body}"
 	);
-}
-
-#[tokio::test]
-async fn test_list_users_should_ignore_invalid_sort_field() {
-	let state = create_mock_app_state().await;
-	let app = axum::Router::new()
-		.nest("/v1/users", users_router())
-		.layer(Extension(state));
-	let server = TestServer::new(app).unwrap();
-	let res = server
-		.get("/v1/users?page=1&per_page=10&sort_by=nonexistent_field")
-		.await;
-	assert_eq!(res.status_code(), StatusCode::OK);
 }
 
 #[tokio::test]
