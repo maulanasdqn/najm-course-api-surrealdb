@@ -12,6 +12,9 @@ use crate::{
 
 #[utoipa::path(
     get,
+    security(
+        ("Bearer" = [])
+    ),
     path = "/v1/roles",
     params(
         ("page" = Option<i64>, Query, description = "Page number"),
@@ -36,6 +39,9 @@ pub async fn get_role_list(
 
 #[utoipa::path(
     get,
+    security(
+        ("Bearer" = [])
+    ),
     path = "/v1/roles/detail/{id}",
     params(("id" = String, Path, description = "Role ID")),
     responses(
@@ -52,6 +58,9 @@ pub async fn get_role_by_id(
 
 #[utoipa::path(
     post,
+    security(
+        ("Bearer" = [])
+    ),
     path = "/v1/roles/create",
     request_body = RolesRequestCreateDto,
     responses(
@@ -68,6 +77,9 @@ pub async fn post_create_role(
 
 #[utoipa::path(
     put,
+    security(
+        ("Bearer" = [])
+    ),
     path = "/v1/roles/update/{id}",
     request_body = RolesRequestUpdateDto,
     responses(
@@ -85,6 +97,9 @@ pub async fn put_update_role(
 
 #[utoipa::path(
     delete,
+    security(
+        ("Bearer" = [])
+    ),
     path = "/v1/roles/delete/{id}",
     responses(
         (status = 200, description = "Delete role", body = MessageResponseDto)

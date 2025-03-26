@@ -31,6 +31,7 @@ impl<'a> PermissionsRepository<'a> {
 			&ResourceEnum::Permissions.to_string(),
 			&meta,
 			conditions,
+			None,
 		)
 		.await
 	}

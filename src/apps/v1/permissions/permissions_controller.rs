@@ -40,6 +40,9 @@ pub async fn get_permission_list(
 #[utoipa::path(
 	get,
 	path = "/v1/permissions/detail/{id}",
+	security(
+        ("Bearer" = [])
+    ),
 	params(("id" = String, Path, description = "Permission ID")),
 	responses(
 		(status = 200, description = "Get permission by ID", body = ResponseSuccessDto<PermissionsItemDto>)
@@ -55,6 +58,9 @@ pub async fn get_permission_by_id(
 
 #[utoipa::path(
 	post,
+	security(
+        ("Bearer" = [])
+    ),
 	path = "/v1/permissions/create",
 	request_body = PermissionsRequestDto,
 	responses(
@@ -71,6 +77,9 @@ pub async fn post_create_permission(
 
 #[utoipa::path(
 	put,
+	security(
+        ("Bearer" = [])
+    ),
 	path = "/v1/permissions/update/{id}",
 	request_body = PermissionsRequestDto,
 	responses(
@@ -88,6 +97,9 @@ pub async fn put_update_permission(
 
 #[utoipa::path(
 	delete,
+	security(
+        ("Bearer" = [])
+    ),
 	path = "/v1/permissions/delete/{id}",
 	responses(
 		(status = 200, description = "Delete permission", body = MessageResponseDto)

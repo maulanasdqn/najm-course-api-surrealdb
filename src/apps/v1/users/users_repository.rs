@@ -1,4 +1,7 @@
-use super::{UsersActiveInactiveSchema, UsersSchema, UsersSetNewPasswordSchema};
+use super::{
+	UsersActiveInactiveSchema, UsersItemDto, UsersItemDtoRaw, UsersSchema,
+	UsersSetNewPasswordSchema,
+};
 use crate::{
 	get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto, ResourceEnum,
 	ResponseListSuccessDto,
@@ -17,20 +20,80 @@ impl<'a> UsersRepository<'a> {
 	pub async fn query_user_list(
 		&self,
 		meta: MetaRequestDto,
-	) -> Result<ResponseListSuccessDto<Vec<UsersSchema>>> {
+	) -> Result<ResponseListSuccessDto<Vec<UsersItemDto>>> {
 		let db = &self.state.surrealdb_ws;
-		let table = ResourceEnum::Users.to_string();
+
 		let mut conditions = vec!["is_deleted = false".to_string()];
-		if let Some(search) = &meta.search {
+
+		if let Some(search) = meta.search.as_deref() {
 			if !search.is_empty() {
 				conditions.push("string::contains(fullname ?? '', $search)".to_string());
 			}
 		}
-		if meta.filter_by.is_some() && meta.filter.is_some() {
-			let filter_by = meta.filter_by.as_ref().unwrap();
+
+		if let (Some(filter_by), Some(_filter)) =
+			(meta.filter_by.as_ref(), meta.filter.as_ref())
+		{
 			conditions.push(format!("{} = $filter", filter_by));
 		}
-		query_list_with_meta::<UsersSchema>(db, &table, &meta, conditions).await
+
+		let where_clause = if !conditions.is_empty() {
+			format!("WHERE {}", conditions.join(" AND "))
+		} else {
+			String::new()
+		};
+
+		let limit = meta.per_page.unwrap_or(10);
+		let start = (meta.page.unwrap_or(1) - 1) * limit;
+
+		let select_query = format!(
+			"
+			SELECT
+				id,
+				role,
+				fullname,
+				email,
+				avatar,
+				phone_number,
+				referred_by,
+				referral_code,
+				student_type,
+				is_active,
+				is_profile_completed,
+				identity_number,
+				religion,
+				gender,
+				birthdate
+			FROM {}
+			{}
+			LIMIT {} START {}
+			FETCH role, role.permissions
+			",
+			ResourceEnum::Users.to_string(),
+			where_clause,
+			limit,
+			start
+		);
+
+		let raw_result = query_list_with_meta::<UsersItemDtoRaw>(
+			db,
+			&ResourceEnum::Users.to_string(),
+			&meta,
+			vec![],
+			Some(select_query),
+		)
+		.await?;
+
+		let converted = raw_result
+			.data
+			.into_iter()
+			.map(UsersItemDto::from)
+			.collect();
+
+		Ok(ResponseListSuccessDto {
+			data: converted,
+			meta: raw_result.meta,
+		})
 	}
 
 	pub async fn query_user_by_email(&self, email: String) -> Result<UsersSchema> {

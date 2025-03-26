@@ -8,8 +8,8 @@ use crate::{
 	encode_reset_password_token, extract_email_token, generate_otp, get_iso_date,
 	hash_password, make_thing, send_email, success_response, validate_request,
 	verify_password, AppState, Env, ResourceEnum, ResponseSuccessDto, RolesEnum,
-	RolesRepository, UsersActiveInactiveSchema, UsersItemDto, UsersRepository,
-	UsersSchema, UsersSetNewPasswordSchema,
+	RolesItemDto, RolesRepository, UsersActiveInactiveSchema, UsersItemDto,
+	UsersRepository, UsersSchema, UsersSetNewPasswordSchema,
 };
 use axum::{http::StatusCode, response::Response};
 use surrealdb::Uuid;
@@ -27,6 +27,7 @@ impl AuthService {
 
 		let user_repo = UsersRepository::new(state);
 		let auth_repo = AuthRepository::new(state);
+		let role_repo = RolesRepository::new(state);
 
 		match user_repo.query_user_by_email(payload.email.clone()).await {
 			Ok(user) => {
@@ -67,6 +68,11 @@ impl AuthService {
 					}
 				};
 
+				let role_response = role_repo
+					.query_role_by_id(user.role.id.to_raw())
+					.await
+					.unwrap();
+
 				let response = ResponseSuccessDto {
 					data: AuthLoginResponsetDto {
 						user: UsersItemDto {
@@ -84,6 +90,14 @@ impl AuthService {
 							gender: user.gender.clone(),
 							birthdate: user.birthdate.clone(),
 							is_profile_completed: user.is_profile_completed.clone(),
+							role: RolesItemDto {
+								id: role_response.id,
+								name: role_response.name,
+								is_deleted: role_response.is_deleted,
+								permissions: vec![],
+								created_at: role_response.created_at,
+								updated_at: role_response.updated_at,
+							},
 						},
 						token: TokenDto {
 							access_token,
@@ -92,8 +106,8 @@ impl AuthService {
 					},
 				};
 
-				if let Err(err) = auth_repo.query_store_user(user).await {
-					return common_response(StatusCode::BAD_REQUEST, &err.to_string());
+				if let Err(_err) = auth_repo.query_store_user(user).await {
+					return common_response(StatusCode::BAD_REQUEST, "User already login");
 				}
 
 				success_response(response)
@@ -109,16 +123,16 @@ impl AuthService {
 		if let Err((status, message)) = validate_request(&payload) {
 			return common_response(status, &message);
 		}
-
 		let user_repo = UsersRepository::new(state);
 		let auth_repo = AuthRepository::new(state);
 		let role_repo = RolesRepository::new(state);
-
-		let role = role_repo
+		let role = match role_repo
 			.query_role_by_name(RolesEnum::Student.to_string())
 			.await
-			.unwrap();
-
+		{
+			Ok(role) => role,
+			Err(_) => return common_response(StatusCode::BAD_REQUEST, "Role Not Found"),
+		};
 		if user_repo
 			.query_user_by_email(payload.email.clone())
 			.await
@@ -126,7 +140,6 @@ impl AuthService {
 		{
 			return common_response(StatusCode::BAD_REQUEST, "User already exists");
 		}
-
 		let hashed_password = match hash_password(&payload.password) {
 			Ok(hash) => hash,
 			Err(_) => {
@@ -136,7 +149,6 @@ impl AuthService {
 				);
 			}
 		};
-
 		let new_user = AuthRegisterRequestDto {
 			email: payload.email,
 			password: hashed_password,
@@ -146,9 +158,7 @@ impl AuthService {
 			referral_code: payload.referral_code,
 			referred_by: payload.referred_by,
 		};
-
 		let otp = generate_otp::OtpManager::generate_otp();
-
 		match auth_repo
 			.query_store_otp(new_user.email.clone(), otp.clone())
 			.await
@@ -166,13 +176,11 @@ impl AuthService {
 				return common_response(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string());
 			}
 		}
-
 		let role_thing = make_thing(&ResourceEnum::Roles.to_string(), &role.id);
 		let user_thing = make_thing(
 			&ResourceEnum::Users.to_string(),
 			&Uuid::new_v4().to_string(),
 		);
-
 		match user_repo
 			.query_create_user(UsersSchema {
 				id: user_thing,
@@ -186,8 +194,6 @@ impl AuthService {
 				created_at: Some(get_iso_date()),
 				updated_at: Some(get_iso_date()),
 				role: role_thing,
-				is_active: false,
-				is_profile_completed: false,
 				..Default::default()
 			})
 			.await
@@ -230,7 +236,6 @@ impl AuthService {
 				return common_response(StatusCode::UNAUTHORIZED, "Invalid refresh token");
 			}
 		};
-
 		let access_token = match encode_access_token(email.clone()) {
 			Ok(token) => token,
 			Err(_) => {
@@ -240,7 +245,6 @@ impl AuthService {
 				);
 			}
 		};
-
 		let refresh_token = match encode_refresh_token(email.clone()) {
 			Ok(token) => token,
 			Err(_) => {
@@ -250,14 +254,12 @@ impl AuthService {
 				);
 			}
 		};
-
 		let response = ResponseSuccessDto {
 			data: TokenDto {
 				access_token,
 				refresh_token,
 			},
 		};
-
 		success_response(response)
 	}
 

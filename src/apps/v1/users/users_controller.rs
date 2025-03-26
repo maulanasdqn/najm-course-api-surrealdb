@@ -12,6 +12,9 @@ use super::UsersUpdateRequestDto;
 
 #[utoipa::path(
 	get,
+	security(
+        ("Bearer" = [])
+    ),
 	path = "/v1/users",
 	params(
 		("page" = Option<i64>, Query, description = "Page number"),
@@ -36,6 +39,9 @@ pub async fn get_user_list(
 
 #[utoipa::path(
 	get,
+	security(
+        ("Bearer" = [])
+    ),
 	path = "/v1/users/detail/{id}",
 	params(
 		("id" = String, Path, description = "User ID")
@@ -54,6 +60,9 @@ pub async fn get_user_by_id(
 
 #[utoipa::path(
 	post,
+	security(
+        ("Bearer" = [])
+    ),
 	path = "/v1/users/create",
 	request_body = UsersCreateRequestDto,
 	responses(
@@ -70,6 +79,9 @@ pub async fn post_create_user(
 
 #[utoipa::path(
 	put,
+	security(
+        ("Bearer" = [])
+    ),
 	path = "/v1/users/update/{id}",
 	request_body = UsersCreateRequestDto,
 	responses(
@@ -87,6 +99,9 @@ pub async fn put_update_user(
 
 #[utoipa::path(
 	put,
+	security(
+        ("Bearer" = [])
+    ),
 	path = "/v1/users/activate/{id}",
 	request_body = UsersActiveInactiveRequestDto,
 	responses(
@@ -104,6 +119,9 @@ pub async fn patch_user_active_status(
 
 #[utoipa::path(
 	delete,
+	security(
+        ("Bearer" = [])
+    ),
 	path = "/v1/users/delete/{id}",
 	responses(
 		(status = 200, description = "Soft delete user", body = MessageResponseDto)

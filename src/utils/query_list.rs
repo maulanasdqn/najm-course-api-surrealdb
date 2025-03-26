@@ -1,15 +1,22 @@
 use crate::{CountResult, MetaRequestDto, MetaResponseDto, ResponseListSuccessDto};
 use anyhow::{bail, Result};
 use serde::{de::DeserializeOwned, Serialize};
+use serde_json::Value;
+use surrealdb::sql::Thing;
 use surrealdb::{engine::remote::ws::Client, Surreal};
 
 use super::bind_filter_value;
+
+fn thing_to_string(thing: &Thing) -> String {
+	format!("{}", thing.id)
+}
 
 pub async fn query_list_with_meta<T>(
 	db: &Surreal<Client>,
 	table: &str,
 	meta: &MetaRequestDto,
 	conditions: Vec<String>,
+	custom_select: Option<String>,
 ) -> Result<ResponseListSuccessDto<Vec<T>>>
 where
 	T: DeserializeOwned + Serialize,
@@ -19,44 +26,58 @@ where
 	if page < 1 || per_page < 1 {
 		bail!("Invalid pagination: page and per_page must be greater than 0");
 	}
-
 	let start = (page - 1) * per_page;
 
-	let mut sql = format!("SELECT * FROM {}", table);
-	if !conditions.is_empty() {
-		sql.push_str(" WHERE ");
-		sql.push_str(&conditions.join(" AND "));
-	}
+	// SELECT QUERY
+	let sql = custom_select.unwrap_or_else(|| {
+		let mut s = format!("SELECT * FROM {}", table);
+		if !conditions.is_empty() {
+			s.push_str(" WHERE ");
+			s.push_str(&conditions.join(" AND "));
+		}
+		if let Some(sort_by) = &meta.sort_by {
+			let order = match meta
+				.order
+				.clone()
+				.unwrap_or_default()
+				.to_uppercase()
+				.as_str()
+			{
+				"DESC" => "DESC",
+				_ => "ASC",
+			};
+			s.push_str(&format!(" ORDER BY {} {}", sort_by, order));
+		}
+		s.push_str(" LIMIT $per_page START $start");
+		s
+	});
 
-	if let Some(sort_by) = &meta.sort_by {
-		let order = match meta
-			.order
-			.clone()
-			.unwrap_or_else(|| "ASC".into())
-			.to_uppercase()
-			.as_str()
-		{
-			"ASC" => "ASC",
-			"DESC" => "DESC",
-			_ => "ASC",
-		};
-		sql.push_str(&format!(" ORDER BY {} {}", sort_by, order));
-	}
-
-	sql.push_str(" LIMIT $per_page START $start");
-
-	let mut query = db.query(sql);
+	let mut query_exec = db.query(sql);
 	if let Some(search) = &meta.search {
 		if !search.is_empty() {
-			query = query.bind(("search", search.clone()));
+			query_exec = query_exec.bind(("search", search.clone()));
 		}
 	}
 	if let Some(filter_val) = meta.filter.clone() {
-		query = bind_filter_value(query, filter_val);
+		query_exec = bind_filter_value(query_exec, filter_val);
 	}
-	query = query.bind(("per_page", per_page)).bind(("start", start));
+	query_exec = query_exec
+		.bind(("per_page", per_page))
+		.bind(("start", start));
 
-	let items: Vec<T> = query.await?.take(0)?;
+	let raw: Vec<Value> = query_exec.await?.take(0)?;
+
+	let mapped: Vec<T> = raw
+		.into_iter()
+		.map(|mut item| {
+			if let Some(id) = item.get("id").cloned() {
+				if let Ok(thing) = serde_json::from_value::<Thing>(id.clone()) {
+					item["id"] = Value::String(thing_to_string(&thing));
+				}
+			}
+			serde_json::from_value(item).unwrap()
+		})
+		.collect();
 
 	// COUNT QUERY
 	let mut count_sql = format!("SELECT count() FROM {}", table);
@@ -64,7 +85,6 @@ where
 		count_sql.push_str(" WHERE ");
 		count_sql.push_str(&conditions.join(" AND "));
 	}
-
 	let mut count_query = db.query(count_sql);
 	if let Some(search) = &meta.search {
 		if !search.is_empty() {
@@ -74,7 +94,6 @@ where
 	if let Some(filter_val) = meta.filter.clone() {
 		count_query = bind_filter_value(count_query, filter_val);
 	}
-
 	let count_result: Vec<CountResult> = count_query.await?.take(0)?;
 	let total = count_result.first().map(|c| c.count);
 
@@ -85,7 +104,7 @@ where
 	};
 
 	Ok(ResponseListSuccessDto {
-		data: items,
+		data: mapped,
 		meta: Some(meta),
 	})
 }

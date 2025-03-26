@@ -19,6 +19,12 @@ impl<'a> AuthRepository<'a> {
 		let table = ResourceEnum::UsersCache.to_string();
 		let user_id = user.email.clone();
 		let id = make_thing(&table, &user_id);
+		let _ = self
+			.state
+			.surrealdb_mem
+			.delete::<Option<UsersSchema>>((table.clone(), user_id.clone()))
+			.await?;
+
 		let mut user_to_store = user.clone();
 		user_to_store.id = id.clone();
 		let record: Option<UsersSchema> = self
