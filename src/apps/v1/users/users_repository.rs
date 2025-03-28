@@ -1,6 +1,5 @@
 use super::{
-	UsersActiveInactiveSchema, UsersItemDto, UsersItemDtoRaw, UsersSchema,
-	UsersSetNewPasswordSchema,
+	UsersActiveInactiveSchema, UsersItemDtoRaw, UsersSchema, UsersSetNewPasswordSchema,
 };
 use crate::{
 	get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto, ResourceEnum,
@@ -20,7 +19,7 @@ impl<'a> UsersRepository<'a> {
 	pub async fn query_user_list(
 		&self,
 		meta: MetaRequestDto,
-	) -> Result<ResponseListSuccessDto<Vec<UsersItemDto>>> {
+	) -> Result<ResponseListSuccessDto<Vec<UsersItemDtoRaw>>> {
 		let db = &self.state.surrealdb_ws;
 
 		let mut conditions = vec!["is_deleted = false".to_string()];
@@ -84,14 +83,8 @@ impl<'a> UsersRepository<'a> {
 		)
 		.await?;
 
-		let converted = raw_result
-			.data
-			.into_iter()
-			.map(UsersItemDto::from)
-			.collect();
-
 		Ok(ResponseListSuccessDto {
-			data: converted,
+			data: raw_result.data,
 			meta: raw_result.meta,
 		})
 	}
