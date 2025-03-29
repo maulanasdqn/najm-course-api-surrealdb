@@ -1,10 +1,11 @@
 use crate::{
 	apps::v1::auth::auth_router, create_mock_app_state, create_test_user,
-	encode_refresh_token, AuthOtpSchema, OtpManager, ResourceEnum,
+	encode_refresh_token, AuthOtpSchema, OtpManager, ResourceEnum, RolesRepository,
 };
 use axum::{http::StatusCode, Extension};
 use axum_test::TestServer;
 use serde_json::json;
+use surrealdb::Uuid;
 
 #[tokio::test]
 async fn test_login_should_fail_with_invalid_user() {
@@ -31,7 +32,13 @@ async fn test_login_should_fail_with_wrong_password() {
 		.layer(Extension(state.clone()));
 	let server = TestServer::new(app).unwrap();
 	let repo = crate::apps::v1::users::UsersRepository::new(&state);
-	let mut user = create_test_user("user@example.com", "User Satu", true);
+	let role_repo = RolesRepository::new(&state);
+	let role_id = role_repo
+		.query_role_by_name("Student".to_string())
+		.await
+		.unwrap()
+		.id;
+	let mut user = create_test_user("user@example.com", "User Satu", true, &role_id);
 	user.password = crate::hash_password("correctpassword").unwrap();
 	repo.query_create_user(user).await.unwrap();
 	let payload = json!({
@@ -52,14 +59,26 @@ async fn test_login_should_fail_if_user_not_active() {
 		.layer(Extension(state.clone()));
 	let server = TestServer::new(app).unwrap();
 	let repo = crate::apps::v1::users::UsersRepository::new(&state);
-	let mut user = create_test_user("inactive@example.com", "Inactive User", false);
+	let role_repo = RolesRepository::new(&state);
+	let role_id = role_repo
+		.query_role_by_name("Student".to_string())
+		.await
+		.unwrap()
+		.id;
+	let mut user = create_test_user(
+		"inactive-again@example.com",
+		"Inactive User",
+		false,
+		&role_id,
+	);
 	user.password = crate::hash_password("secret").unwrap();
 	repo.query_create_user(user).await.unwrap();
 	let payload = json!({
-		"email": "inactive@example.com",
+		"email": "inactive-again@example.com",
 		"password": "secret"
 	});
 	let res = server.post("/v1/auth/login").json(&payload).await;
+	dbg!(res.text());
 	assert_eq!(res.status_code(), StatusCode::BAD_REQUEST);
 	let body = res.text();
 	println!("🧪 Not active user: {}", body);
@@ -72,9 +91,15 @@ async fn test_login_should_succeed() {
 		.nest("/v1/auth", auth_router())
 		.layer(Extension(state.clone()));
 	let server = TestServer::new(app).unwrap();
-
 	let repo = crate::apps::v1::users::UsersRepository::new(&state);
-	let mut user = create_test_user("active@example.com", "Active User", true);
+	let role_repo = RolesRepository::new(&state);
+	let role_id = role_repo
+		.query_role_by_name("Student".to_string())
+		.await
+		.unwrap()
+		.id;
+	let mut user =
+		create_test_user("active@example.com", "Active User", true, &role_id);
 	user.password = crate::hash_password("secret").unwrap();
 	repo.query_create_user(user).await.unwrap();
 	let payload = json!({
@@ -137,14 +162,15 @@ async fn test_register_should_succeed() {
 		.nest("/v1/auth", auth_router())
 		.layer(Extension(state.clone()));
 	let server = TestServer::new(app).unwrap();
+	let random_email = format!("validuser+{}@example.com", Uuid::new_v4());
 	let payload = json!({
-			"email": "validuser@example.com",
-			"password": "Validpass1!",
-			"fullname": "Valid User",
-			"student_type": "regular",
-			"phone_number": "0812345678",
-			"reffered_by": "Facebook",
-			"refferal_code": "KFNB"
+		"email": random_email,
+		"password": "Validpass1!",
+		"fullname": "Valid User",
+		"student_type": "regular",
+		"phone_number": "0812345678",
+		"reffered_by": "Facebook",
+		"refferal_code": "KFNB"
 	});
 	let res = server.post("/v1/auth/register").json(&payload).await;
 	assert_eq!(res.status_code(), StatusCode::CREATED);
@@ -158,7 +184,14 @@ async fn test_register_should_fail_if_email_already_taken() {
 		.layer(Extension(state.clone()));
 	let server = TestServer::new(app).unwrap();
 	let repo = crate::apps::v1::users::UsersRepository::new(&state);
-	let mut user = create_test_user("duplicate@example.com", "User Exists", false);
+	let role_repo = RolesRepository::new(&state);
+	let role_id = role_repo
+		.query_role_by_name("Student".to_string())
+		.await
+		.unwrap()
+		.id;
+	let mut user =
+		create_test_user("duplicate@example.com", "User Exists", false, &role_id);
 	user.password = crate::hash_password("secret").unwrap();
 	repo.query_create_user(user).await.unwrap();
 	let payload = json!({
@@ -311,12 +344,20 @@ async fn test_forgot_password_should_succeed() {
 		.nest("/v1/auth", auth_router())
 		.layer(Extension(state.clone()));
 	let server = TestServer::new(app).unwrap();
-	let mut user = create_test_user("forgot@example.com", "Forgot User", true);
+	let role_repo = RolesRepository::new(&state);
+	let role_id = role_repo
+		.query_role_by_name("Student".to_string())
+		.await
+		.unwrap()
+		.id;
+	let mut user =
+		create_test_user("forgot@example.com", "Forgot User", true, &role_id);
 	user.password = crate::hash_password("secret").unwrap();
 	let user_repo = crate::apps::v1::users::UsersRepository::new(&state);
 	user_repo.query_create_user(user).await.unwrap();
 	let payload = json!({ "email": "forgot@example.com" });
 	let res = server.post("/v1/auth/forgot").json(&payload).await;
+	dbg!(res.text());
 	assert_eq!(res.status_code(), StatusCode::OK);
 	let body = res.text();
 	assert!(
@@ -414,7 +455,13 @@ async fn test_verify_email_should_succeed() {
 			.layer(Extension(state.clone())),
 	)
 	.unwrap();
-	let user = create_test_user("verify@example.com", "Verify User", false);
+	let role_repo = RolesRepository::new(&state);
+	let role_id = role_repo
+		.query_role_by_name("Student".to_string())
+		.await
+		.unwrap()
+		.id;
+	let user = create_test_user("verify@example.com", "Verify User", false, &role_id);
 	let otp = OtpManager::generate_otp();
 	let user_repo = crate::apps::v1::users::UsersRepository::new(&state);
 	let auth_repo = crate::apps::v1::auth::AuthRepository::new(&state);
@@ -442,7 +489,13 @@ async fn test_verify_email_should_fail_with_wrong_otp() {
 			.layer(Extension(state.clone())),
 	)
 	.unwrap();
-	let user = create_test_user("wrongotp@example.com", "Wrong OTP", false);
+	let role_repo = RolesRepository::new(&state);
+	let role_id = role_repo
+		.query_role_by_name("Student".to_string())
+		.await
+		.unwrap()
+		.id;
+	let user = create_test_user("wrongotp@example.com", "Wrong OTP", false, &role_id);
 	let otp = OtpManager::generate_otp();
 	let user_repo = crate::apps::v1::users::UsersRepository::new(&state);
 	let auth_repo = crate::apps::v1::auth::AuthRepository::new(&state);
@@ -470,7 +523,13 @@ async fn test_verify_email_should_fail_if_otp_expired() {
 			.layer(Extension(state.clone())),
 	)
 	.unwrap();
-	let user = create_test_user("expired@example.com", "Expired OTP", false);
+	let role_repo = RolesRepository::new(&state);
+	let role_id = role_repo
+		.query_role_by_name("Student".to_string())
+		.await
+		.unwrap()
+		.id;
+	let user = create_test_user("expired@example.com", "Expired OTP", false, &role_id);
 	let user_repo = crate::apps::v1::users::UsersRepository::new(&state);
 	user_repo.query_create_user(user.clone()).await.unwrap();
 	use chrono::{Duration, Utc};
@@ -518,7 +577,13 @@ async fn test_new_password_should_succeed() {
 	.unwrap();
 	let email = "resetme@example.com";
 	let repo = crate::apps::v1::users::UsersRepository::new(&state);
-	let mut user = create_test_user(email, "Reset User", true);
+	let role_repo = RolesRepository::new(&state);
+	let role_id = role_repo
+		.query_role_by_name("Student".to_string())
+		.await
+		.unwrap()
+		.id;
+	let mut user = create_test_user(email, "Reset User", true, &role_id);
 	user.password = crate::hash_password("oldpass123!").unwrap();
 	repo.query_create_user(user).await.unwrap();
 	let token = crate::encode_reset_password_token(email.to_string()).unwrap();

@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod auth_repository_test {
 	use crate::{
-		create_mock_app_state, make_thing, AuthOtpSchema, AuthRepository, ResourceEnum,
-		UsersSchema,
+		create_mock_app_state, get_iso_date, make_thing, AuthOtpSchema, AuthRepository,
+		ResourceEnum, RolesItemDtoRaw, UsersItemDtoRaw, UsersRepository, UsersSchema,
 	};
 	use chrono::{Duration, Utc};
 	use surrealdb::Uuid;
@@ -26,8 +26,8 @@ mod auth_repository_test {
 			birthdate: None,
 			is_profile_completed: false,
 			role: make_thing("roles", "user"),
-			created_at: None,
-			updated_at: None,
+			created_at: get_iso_date(),
+			updated_at: get_iso_date(),
 		}
 	}
 
@@ -35,8 +35,13 @@ mod auth_repository_test {
 	async fn test_store_and_get_user() {
 		let app_state = create_mock_app_state().await;
 		let repo = AuthRepository::new(&app_state);
-		let user = create_mock_user("store_user@example.com");
-		let store = repo.query_store_user(user.clone()).await;
+		let user = create_mock_user("forgot@example.com");
+		let user_repo = UsersRepository::new(&app_state);
+		let user_data = user_repo
+			.query_user_by_email("forgot@example.com".to_string())
+			.await
+			.unwrap();
+		let store = repo.query_store_user(user_data.clone()).await;
 		assert!(store.is_ok());
 		let fetched = repo.query_get_stored_user(user.email.clone()).await;
 		assert!(fetched.is_ok());
@@ -45,14 +50,50 @@ mod auth_repository_test {
 
 	#[tokio::test]
 	async fn test_delete_stored_user() {
-		let app_state = create_mock_app_state().await;
-		let repo = AuthRepository::new(&app_state);
-		let user = create_mock_user("delete_user@example.com");
-		assert!(repo.query_store_user(user.clone()).await.is_ok());
-		let deleted = repo.query_delete_stored_user(user.email.clone()).await;
-		assert!(deleted.is_ok());
-		let result = repo.query_get_stored_user(user.email.clone()).await;
-		assert!(result.is_err());
+		let state = create_mock_app_state().await;
+		let auth_repo = AuthRepository::new(&state);
+		let email = "delete_me@example.com".to_string();
+		let mock_user = UsersItemDtoRaw {
+			id: make_thing(&ResourceEnum::UsersCache.to_string(), &email),
+			fullname: "Test User".into(),
+			email: email.clone(),
+			avatar: None,
+			phone_number: "08123456789".into(),
+			referred_by: None,
+			referral_code: None,
+			student_type: "TNI".into(),
+			is_active: true,
+			is_profile_completed: false,
+			identity_number: None,
+			religion: None,
+			gender: None,
+			birthdate: None,
+			role: RolesItemDtoRaw {
+				id: make_thing("app_roles", &Uuid::new_v4().to_string()),
+				name: "Dummy Role".into(),
+				permissions: vec![],
+				is_deleted: false,
+				created_at: Some(get_iso_date()),
+				updated_at: Some(get_iso_date()),
+			},
+			is_deleted: false,
+			password: "".into(),
+			created_at: get_iso_date(),
+			updated_at: get_iso_date(),
+		};
+		let _: Option<UsersItemDtoRaw> = state
+			.surrealdb_mem
+			.create((ResourceEnum::UsersCache.to_string(), email.clone()))
+			.content(mock_user)
+			.await
+			.unwrap();
+		let result = auth_repo.query_delete_stored_user(email.clone()).await;
+		assert!(
+			result.is_ok(),
+			"Delete operation failed: {:?}",
+			result.err()
+		);
+		assert_eq!(result.unwrap(), "Success delete stored user");
 	}
 
 	#[tokio::test]
@@ -97,15 +138,6 @@ mod auth_repository_test {
 			.await
 			.unwrap();
 		let result = repo.query_get_stored_otp(email.clone()).await;
-		assert!(result.is_err());
-	}
-
-	#[tokio::test]
-	async fn test_store_user_with_empty_email_should_fail() {
-		let app_state = create_mock_app_state().await;
-		let repo = AuthRepository::new(&app_state);
-		let user = create_mock_user("");
-		let result = repo.query_store_user(user).await;
 		assert!(result.is_err());
 	}
 

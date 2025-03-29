@@ -1,39 +1,27 @@
-use crate::{create_mock_app_state, ResourceEnum};
+use crate::{create_mock_app_state, create_test_user, RolesRepository};
 use crate::{
-	make_thing, MetaRequestDto, UsersActiveInactiveSchema, UsersRepository,
-	UsersSchema, UsersSetNewPasswordSchema,
+	MetaRequestDto, UsersActiveInactiveSchema, UsersRepository,
+	UsersSetNewPasswordSchema,
 };
-use surrealdb::Uuid;
 
-fn create_test_user(email: &str, fullname: &str, is_active: bool) -> UsersSchema {
-	UsersSchema {
-		id: make_thing("app_users", &Uuid::new_v4().to_string()),
-		email: email.to_string(),
-		fullname: fullname.to_string(),
-		password: "password".to_string(),
-		is_deleted: false,
-		avatar: None,
-		phone_number: "081234567890".to_string(),
-		referral_code: None,
-		referred_by: None,
-		identity_number: None,
-		is_active,
-		student_type: "general".to_string(),
-		religion: None,
-		gender: None,
-		birthdate: None,
-		is_profile_completed: false,
-		role: make_thing(&ResourceEnum::Roles.to_string(), "user"),
-		created_at: None,
-		updated_at: None,
-	}
+async fn get_role_id(state: &crate::AppState) -> String {
+	RolesRepository::new(state)
+		.query_role_by_name("Student".into())
+		.await
+		.expect("Role not found")
+		.id
 }
 
 #[tokio::test]
 async fn test_create_and_get_user() {
 	let app_state = create_mock_app_state().await;
 	let repo = UsersRepository::new(&app_state);
-	let user = create_test_user("testuser@example.com", "Test User", true);
+	let user = create_test_user(
+		"testuser@example.com",
+		"Test User",
+		true,
+		&get_role_id(&app_state).await,
+	);
 	let create_result = repo.query_create_user(user.clone()).await;
 	assert!(create_result.is_ok());
 	let fetched = repo
@@ -47,18 +35,29 @@ async fn test_create_and_get_user() {
 async fn test_update_password_user() {
 	let app_state = create_mock_app_state().await;
 	let repo = UsersRepository::new(&app_state);
+	let role_repo = RolesRepository::new(&app_state);
+	let role_id = role_repo
+		.query_role_by_name("Student".into())
+		.await
+		.expect("Role not found")
+		.id;
 	let email = "changepass@example.com";
-	let user = create_test_user(email, "Change Password", true);
+	let user = create_test_user(email, "Change Password", true, &role_id);
 	repo.query_create_user(user).await.unwrap();
 	let result = repo
 		.query_update_password_user(
-			email.into(),
+			email.to_string(),
 			UsersSetNewPasswordSchema {
 				password: "newpass".into(),
 			},
 		)
 		.await;
-	assert!(result.is_ok());
+	assert!(
+		result.is_ok(),
+		"Update password failed with error: {:?}",
+		result.err()
+	);
+	dbg!(result.unwrap());
 }
 
 #[tokio::test]
@@ -69,7 +68,8 @@ async fn test_query_user_list_with_pagination_and_filter() {
 		let email = format!("user{}@example.com", i);
 		let fullname = format!("User {}", i);
 		let is_active = i % 2 == 0;
-		let user = create_test_user(&email, &fullname, is_active);
+		let user =
+			create_test_user(&email, &fullname, is_active, &get_role_id(&app_state).await);
 		repo.query_create_user(user).await.unwrap();
 	}
 	let meta = MetaRequestDto {
@@ -93,7 +93,12 @@ async fn test_query_user_list_basic() {
 	let repo = UsersRepository::new(&app_state);
 	for i in 0..10 {
 		let email = format!("basic{}@example.com", i);
-		let user = create_test_user(&email, &format!("Basic User {}", i), true);
+		let user = create_test_user(
+			&email,
+			&format!("Basic User {}", i),
+			true,
+			&get_role_id(&app_state).await,
+		);
 		repo.query_create_user(user).await.unwrap();
 	}
 	let meta = MetaRequestDto {
@@ -116,7 +121,12 @@ async fn test_query_active_inactive_user() {
 	let app_state = create_mock_app_state().await;
 	let repo = UsersRepository::new(&app_state);
 	let email = "inactive@example.com";
-	let user = create_test_user(email, "Inactive User", false);
+	let user = create_test_user(
+		email,
+		"Inactive User",
+		false,
+		&get_role_id(&app_state).await,
+	);
 	repo.query_create_user(user).await.unwrap();
 	let result = repo
 		.query_active_inactive_user(
@@ -162,7 +172,8 @@ async fn test_query_delete_user() {
 	let app_state = create_mock_app_state().await;
 	let repo = UsersRepository::new(&app_state);
 	let email = "deleteuser@example.com";
-	let user = create_test_user(email, "Delete User", true);
+	let user =
+		create_test_user(email, "Delete User", true, &get_role_id(&app_state).await);
 	repo.query_create_user(user.clone()).await.unwrap();
 	let user_detail = repo
 		.query_user_by_email(email.to_string().clone())
@@ -192,7 +203,8 @@ async fn test_delete_user_twice_should_fail_on_second_attempt() {
 	let app_state = create_mock_app_state().await;
 	let repo = UsersRepository::new(&app_state);
 	let email = "twice@example.com";
-	let user = create_test_user(email, "Delete Twice", true);
+	let user =
+		create_test_user(email, "Delete Twice", true, &get_role_id(&app_state).await);
 	repo.query_create_user(user.clone()).await.unwrap();
 	let first = repo.query_delete_user(user.id.id.to_raw()).await;
 	assert!(first.is_ok());
@@ -205,7 +217,12 @@ async fn test_delete_user_twice_should_fail_on_second_attempt() {
 async fn test_query_update_user_should_succeed() {
 	let state = create_mock_app_state().await;
 	let repo = UsersRepository::new(&state);
-	let mut user = create_test_user("update@example.com", "Old Name", true);
+	let mut user = create_test_user(
+		"update@example.com",
+		"Old Name",
+		true,
+		&get_role_id(&state).await,
+	);
 	repo.query_create_user(user.clone()).await.unwrap();
 	user.fullname = "Updated Name".into();
 	user.phone_number = "089876543210".into();

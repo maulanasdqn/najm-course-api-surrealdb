@@ -1,7 +1,7 @@
 use crate::{
 	v1::{
 		auth, permissions, roles, users, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto
-	}, AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto, MetaRequestDto, MetaResponseDto, PermissionsItemDto, PermissionsRequestDto, ResponseListSuccessDto, ResponseSuccessDto, RolesItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto, UsersItemDto
+	}, AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto, MetaRequestDto, MetaResponseDto, PermissionsItemDto, PermissionsRequestDto, ResponseListSuccessDto, ResponseSuccessDto, RolesItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto, UsersCreateRequestDto, UsersDetailItemDto, UsersItemDto, UsersListItemDto, UsersUpdateRequestDto
 };
 
 use utoipa::{
@@ -21,9 +21,11 @@ use utoipa::{
      auth::auth_controller::post_new_password,
      users::users_controller::post_create_user,
      users::users_controller::put_update_user,
+     users::users_controller::put_update_user_me,
      users::users_controller::patch_user_active_status,
      users::users_controller::delete_user,
      users::users_controller::get_user_by_id,
+     users::users_controller::get_user_me,
      users::users_controller::get_user_list,
      roles::roles_controller::get_role_list,
      roles::roles_controller::get_role_by_id,
@@ -53,11 +55,15 @@ use utoipa::{
            RolesRequestUpdateDto,
            PermissionsRequestDto,
            PermissionsItemDto,
+           UsersItemDto,
+           UsersListItemDto,
+           UsersUpdateRequestDto,
+           UsersCreateRequestDto,
            ResponseSuccessDto<AuthLoginResponsetDto>,
            ResponseListSuccessDto<Vec<RolesItemDto>>,
            ResponseSuccessDto<RolesItemDto>,
-           ResponseListSuccessDto<Vec<UsersItemDto>>,
-           ResponseSuccessDto<UsersItemDto>,
+           ResponseListSuccessDto<Vec<UsersListItemDto>>,
+           ResponseSuccessDto<UsersDetailItemDto>,
            ResponseListSuccessDto<Vec<PermissionsItemDto>>,
            ResponseSuccessDto<PermissionsItemDto>
         )

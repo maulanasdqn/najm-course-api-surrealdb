@@ -9,3 +9,8 @@ pub fn get_id(thing: &Thing) -> Result<(&str, &str)> {
 	};
 	Ok((table, id))
 }
+
+pub fn extract_id(thing: &Thing) -> String {
+	let id = thing.id.to_raw();
+	id
+}

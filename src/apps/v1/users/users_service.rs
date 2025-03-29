@@ -1,15 +1,18 @@
 use crate::{
-	common_response, get_iso_date, hash_password, make_thing, success_list_response,
-	success_response, validate_request, ResourceEnum, ResponseSuccessDto,
+	common_response, extract_email, get_iso_date, hash_password, make_thing,
+	success_list_response, success_response, validate_request, ResourceEnum,
+	ResponseSuccessDto,
 };
 use crate::{
 	AppState, MetaRequestDto, ResponseListSuccessDto, UsersActiveInactiveSchema,
 	UsersRepository, UsersSchema, UsersSetNewPasswordSchema,
 };
+use axum::http::HeaderMap;
 use axum::{http::StatusCode, response::Response};
 
 use super::{
-	UsersActiveInactiveRequestDto, UsersCreateRequestDto, UsersUpdateRequestDto,
+	UsersActiveInactiveRequestDto, UsersCreateRequestDto, UsersDetailItemDto,
+	UsersUpdateRequestDto,
 };
 
 pub struct UsersService;
@@ -29,18 +32,56 @@ impl UsersService {
 		}
 	}
 
-	pub async fn get_user_by_email(state: &AppState, email: String) -> Response {
+	pub async fn get_user_by_id(state: &AppState, id: String) -> Response {
 		let repo = UsersRepository::new(state);
-		match repo.query_user_by_email(email).await {
-			Ok(user) => success_response(ResponseSuccessDto { data: user }),
+		match repo.query_user_by_id(id).await {
+			Ok(user) => success_response(ResponseSuccessDto {
+				data: UsersDetailItemDto {
+					id: user.id,
+					role: user.role,
+					fullname: user.fullname,
+					email: user.email,
+					avatar: user.avatar,
+					phone_number: user.phone_number,
+					referred_by: user.referred_by,
+					referral_code: user.referral_code,
+					student_type: user.student_type,
+					is_active: user.is_active,
+					is_profile_completed: user.is_profile_completed,
+					identity_number: user.identity_number,
+					religion: user.religion,
+					gender: user.gender,
+					birthdate: user.birthdate,
+				},
+			}),
 			Err(e) => common_response(StatusCode::NOT_FOUND, &e.to_string()),
 		}
 	}
 
-	pub async fn get_user_by_id(state: &AppState, id: String) -> Response {
+	pub async fn get_user_me(headers: HeaderMap, state: &AppState) -> Response {
 		let repo = UsersRepository::new(state);
-		match repo.query_user_by_id(id).await {
-			Ok(user) => success_response(ResponseSuccessDto { data: user }),
+		let email = extract_email(&headers).unwrap();
+		let user = repo.query_user_by_email(email).await.unwrap();
+		match repo.query_user_by_id(user.id.id.to_raw()).await {
+			Ok(user) => success_response(ResponseSuccessDto {
+				data: UsersDetailItemDto {
+					id: user.id,
+					role: user.role,
+					fullname: user.fullname,
+					email: user.email,
+					avatar: user.avatar,
+					phone_number: user.phone_number,
+					referred_by: user.referred_by,
+					referral_code: user.referral_code,
+					student_type: user.student_type,
+					is_active: user.is_active,
+					is_profile_completed: user.is_profile_completed,
+					identity_number: user.identity_number,
+					religion: user.religion,
+					gender: user.gender,
+					birthdate: user.birthdate,
+				},
+			}),
 			Err(e) => common_response(StatusCode::NOT_FOUND, &e.to_string()),
 		}
 	}
@@ -114,10 +155,49 @@ impl UsersService {
 			avatar: user.avatar,
 			is_profile_completed: false,
 			role: role_id,
-			updated_at: Some(get_iso_date()),
+			updated_at: get_iso_date(),
 			..Default::default()
 		};
 
+		match repo.query_update_user(updated_user).await {
+			Ok(msg) => common_response(StatusCode::OK, &msg),
+			Err(e) => common_response(StatusCode::BAD_REQUEST, &e.to_string()),
+		}
+	}
+
+	pub async fn update_user_me(
+		state: &AppState,
+		headers: HeaderMap,
+		user: UsersUpdateRequestDto,
+	) -> Response {
+		let repo = UsersRepository::new(state);
+		let email = extract_email(&headers).unwrap();
+		let user_data = repo.query_user_by_email(email).await.unwrap();
+		if let Err((status, message)) = validate_request(&user) {
+			return common_response(status, &message);
+		}
+		let user_id =
+			make_thing(&ResourceEnum::Users.to_string(), &user_data.id.id.to_raw());
+		let role_id = make_thing(&ResourceEnum::Roles.to_string(), "");
+		let updated_user = UsersSchema {
+			id: user_id,
+			fullname: user.fullname,
+			email: user.email,
+			phone_number: user.phone_number,
+			referral_code: user.referral_code,
+			referred_by: user.referred_by,
+			identity_number: user.identity_number,
+			is_active: user.is_active,
+			student_type: user.student_type,
+			religion: user.religion,
+			gender: user.gender,
+			birthdate: user.birthdate,
+			avatar: user.avatar,
+			is_profile_completed: true,
+			role: role_id,
+			updated_at: get_iso_date(),
+			..Default::default()
+		};
 		match repo.query_update_user(updated_user).await {
 			Ok(msg) => common_response(StatusCode::OK, &msg),
 			Err(e) => common_response(StatusCode::BAD_REQUEST, &e.to_string()),
@@ -130,21 +210,21 @@ impl UsersService {
 		status: UsersActiveInactiveRequestDto,
 	) -> Response {
 		let repo = UsersRepository::new(state);
-
-		if repo.query_user_by_id(id.clone()).await.is_err() {
-			return common_response(StatusCode::BAD_REQUEST, "User not found");
-		}
-		match repo
-			.query_active_inactive_user_by_id(
-				id,
-				UsersActiveInactiveSchema {
-					is_active: status.is_active,
-				},
-			)
-			.await
-		{
-			Ok(msg) => common_response(StatusCode::OK, &msg),
-			Err(e) => common_response(StatusCode::BAD_REQUEST, &e.to_string()),
+		let thing_id = make_thing(&ResourceEnum::Users.to_string(), &id);
+		match repo.query_user_by_id(thing_id.id.to_raw()).await {
+			Ok(_) => match repo
+				.query_active_inactive_user_by_id(
+					id,
+					UsersActiveInactiveSchema {
+						is_active: status.is_active,
+					},
+				)
+				.await
+			{
+				Ok(msg) => common_response(StatusCode::OK, &msg),
+				Err(e) => common_response(StatusCode::BAD_REQUEST, &e.to_string()),
+			},
+			Err(err) => common_response(StatusCode::BAD_REQUEST, &err.to_string()),
 		}
 	}
 

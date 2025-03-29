@@ -1,15 +1,15 @@
 use super::{
 	AuthLoginRequestDto, AuthLoginResponsetDto, AuthNewPasswordRequestDto,
 	AuthRefreshTokenRequestDto, AuthRegisterRequestDto, AuthRepository,
-	AuthResendOtpRequestDto, AuthVerifyEmailRequestDto, TokenDto,
+	AuthResendOtpRequestDto, AuthUserItemDto, AuthVerifyEmailRequestDto, TokenDto,
 };
 use crate::{
 	common_response, decode_refresh_token, encode_access_token, encode_refresh_token,
 	encode_reset_password_token, extract_email_token, generate_otp, get_iso_date,
 	hash_password, make_thing, send_email, success_response, validate_request,
 	verify_password, AppState, Env, ResourceEnum, ResponseSuccessDto, RolesEnum,
-	RolesItemDto, RolesRepository, UsersActiveInactiveSchema, UsersItemDto,
-	UsersRepository, UsersSchema, UsersSetNewPasswordSchema,
+	RolesItemDto, RolesRepository, UsersActiveInactiveSchema, UsersRepository,
+	UsersSchema, UsersSetNewPasswordSchema,
 };
 use axum::{http::StatusCode, response::Response};
 use surrealdb::Uuid;
@@ -69,13 +69,13 @@ impl AuthService {
 				};
 
 				let role_response = role_repo
-					.query_role_by_id(user.role.id.to_raw())
+					.query_role_by_id(user.role.id.id.to_raw())
 					.await
 					.unwrap();
 
 				let response = ResponseSuccessDto {
 					data: AuthLoginResponsetDto {
-						user: UsersItemDto {
+						user: AuthUserItemDto {
 							id: user.id.id.to_raw(),
 							fullname: user.fullname.clone(),
 							email: user.email.clone(),
@@ -93,8 +93,7 @@ impl AuthService {
 							role: RolesItemDto {
 								id: role_response.id,
 								name: role_response.name,
-								is_deleted: role_response.is_deleted,
-								permissions: vec![],
+								permissions: role_response.permissions,
 								created_at: role_response.created_at,
 								updated_at: role_response.updated_at,
 							},
@@ -191,8 +190,8 @@ impl AuthService {
 				referral_code: new_user.referral_code.clone(),
 				referred_by: new_user.referred_by.clone(),
 				student_type: new_user.student_type.clone(),
-				created_at: Some(get_iso_date()),
-				updated_at: Some(get_iso_date()),
+				created_at: get_iso_date(),
+				updated_at: get_iso_date(),
 				role: role_thing,
 				..Default::default()
 			})
@@ -271,14 +270,17 @@ impl AuthService {
 			return common_response(status, &message);
 		}
 		let user_repo = UsersRepository::new(state);
-		if user_repo
-			.query_user_by_email(payload.email.clone())
-			.await
-			.is_err()
-		{
-			return common_response(StatusCode::BAD_REQUEST, "User not found");
-		}
-		let token = match encode_reset_password_token(payload.email.clone()) {
+		let user_result = user_repo.query_user_by_email(payload.email.clone()).await;
+		let user = match user_result {
+			Ok(user) => user,
+			Err(err) if err.to_string().contains("User not found") => {
+				return common_response(StatusCode::BAD_REQUEST, "User not found")
+			}
+			Err(err) => {
+				return common_response(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string())
+			}
+		};
+		let token = match encode_reset_password_token(user.email) {
 			Ok(token) => token,
 			Err(_) => {
 				return common_response(
@@ -290,10 +292,9 @@ impl AuthService {
 		let env = Env::new();
 		let fe_url = env.fe_url;
 		let message = format!(
-                "You have requested a password reset. Please click the link below to continue: {}/auth/reset-password?token={}",
-                fe_url, token
-            );
-
+			"You have requested a password reset. Please click the link below to continue: {}/auth/reset-password?token={}",
+			fe_url, token
+		);
 		match send_email(&payload.email, "Reset Password Request", &message) {
 			Ok(_) => common_response(StatusCode::OK, "Reset Password request send"),
 			Err(err) => common_response(StatusCode::BAD_REQUEST, &err.to_string()),

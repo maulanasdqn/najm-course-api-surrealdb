@@ -1,15 +1,8 @@
+use super::bind_filter_value;
 use crate::{CountResult, MetaRequestDto, MetaResponseDto, ResponseListSuccessDto};
 use anyhow::{bail, Result};
 use serde::{de::DeserializeOwned, Serialize};
-use serde_json::Value;
-use surrealdb::sql::Thing;
 use surrealdb::{engine::remote::ws::Client, Surreal};
-
-use super::bind_filter_value;
-
-fn thing_to_string(thing: &Thing) -> String {
-	format!("{}", thing.id)
-}
 
 pub async fn query_list_with_meta<T>(
 	db: &Surreal<Client>,
@@ -27,8 +20,6 @@ where
 		bail!("Invalid pagination: page and per_page must be greater than 0");
 	}
 	let start = (page - 1) * per_page;
-
-	// SELECT QUERY
 	let sql = custom_select.unwrap_or_else(|| {
 		let mut s = format!("SELECT * FROM {}", table);
 		if !conditions.is_empty() {
@@ -51,7 +42,6 @@ where
 		s.push_str(" LIMIT $per_page START $start");
 		s
 	});
-
 	let mut query_exec = db.query(sql);
 	if let Some(search) = &meta.search {
 		if !search.is_empty() {
@@ -64,22 +54,7 @@ where
 	query_exec = query_exec
 		.bind(("per_page", per_page))
 		.bind(("start", start));
-
-	let raw: Vec<Value> = query_exec.await?.take(0)?;
-
-	let mapped: Vec<T> = raw
-		.into_iter()
-		.map(|mut item| {
-			if let Some(id) = item.get("id").cloned() {
-				if let Ok(thing) = serde_json::from_value::<Thing>(id.clone()) {
-					item["id"] = Value::String(thing_to_string(&thing));
-				}
-			}
-			serde_json::from_value(item).unwrap()
-		})
-		.collect();
-
-	// COUNT QUERY
+	let raw: Vec<T> = query_exec.await?.take(0)?;
 	let mut count_sql = format!("SELECT count() FROM {}", table);
 	if !conditions.is_empty() {
 		count_sql.push_str(" WHERE ");
@@ -102,9 +77,8 @@ where
 		per_page: Some(per_page),
 		total,
 	};
-
 	Ok(ResponseListSuccessDto {
-		data: mapped,
+		data: raw,
 		meta: Some(meta),
 	})
 }

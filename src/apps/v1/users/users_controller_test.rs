@@ -5,6 +5,7 @@ use crate::{
 };
 use axum::{http::StatusCode, Extension};
 use axum_test::TestServer;
+use surrealdb::Uuid;
 
 #[tokio::test]
 async fn test_get_user_list_should_return_200() {
@@ -210,7 +211,7 @@ async fn test_activate_user_should_return_200() {
 	let server = TestServer::new(app).unwrap();
 	let payload = UsersCreateRequestDto {
 		fullname: "Inactive User".into(),
-		email: "inactive@test.com".into(),
+		email: format!("inactive-{}@test.com", Uuid::new_v4()).into(),
 		password: "Password1!".into(),
 		role_id,
 		student_type: "general".into(),
@@ -219,13 +220,16 @@ async fn test_activate_user_should_return_200() {
 		referral_code: None,
 		referred_by: None,
 	};
-	server.post("/v1/users/create").json(&payload).await;
+	let res_create = server.post("/v1/users/create").json(&payload).await;
+	dbg!(res_create.text());
 	let user = repo.query_user_by_email(payload.email).await.unwrap();
+	dbg!(user.fullname);
 	let user_id = user.id.id.to_raw();
 	let res = server
 		.put(&format!("/v1/users/activate/{}", user_id))
 		.json(&UsersActiveInactiveRequestDto { is_active: true })
 		.await;
+	dbg!(res.text());
 	assert_eq!(res.status_code(), StatusCode::OK);
 }
 

@@ -1,9 +1,11 @@
 use super::{
-	UsersActiveInactiveSchema, UsersItemDtoRaw, UsersSchema, UsersSetNewPasswordSchema,
+	UsersActiveInactiveSchema, UsersItemDto, UsersItemDtoRaw, UsersListItemDto,
+	UsersListItemDtoRaw, UsersSchema, UsersSetNewPasswordSchema,
 };
 use crate::{
-	get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto, ResourceEnum,
-	ResponseListSuccessDto,
+	extract_id, get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto,
+	PermissionsItemDto, PermissionsItemDtoRaw, ResourceEnum, ResponseListSuccessDto,
+	RolesItemDto, RolesItemDtoRaw,
 };
 use anyhow::{bail, Result};
 
@@ -19,7 +21,7 @@ impl<'a> UsersRepository<'a> {
 	pub async fn query_user_list(
 		&self,
 		meta: MetaRequestDto,
-	) -> Result<ResponseListSuccessDto<Vec<UsersItemDtoRaw>>> {
+	) -> Result<ResponseListSuccessDto<Vec<UsersListItemDto>>> {
 		let db = &self.state.surrealdb_ws;
 
 		let mut conditions = vec!["is_deleted = false".to_string()];
@@ -49,7 +51,7 @@ impl<'a> UsersRepository<'a> {
 			"
 			SELECT
 				id,
-				role,
+				role.name AS role,
 				fullname,
 				email,
 				avatar,
@@ -66,7 +68,7 @@ impl<'a> UsersRepository<'a> {
 			FROM {}
 			{}
 			LIMIT {} START {}
-			FETCH role, role.permissions
+			FETCH role 
 			",
 			ResourceEnum::Users.to_string(),
 			where_clause,
@@ -74,7 +76,7 @@ impl<'a> UsersRepository<'a> {
 			start
 		);
 
-		let raw_result = query_list_with_meta::<UsersItemDtoRaw>(
+		let raw_result = query_list_with_meta::<UsersListItemDtoRaw>(
 			db,
 			&ResourceEnum::Users.to_string(),
 			&meta,
@@ -83,36 +85,142 @@ impl<'a> UsersRepository<'a> {
 		)
 		.await?;
 
+		let transformed_data = raw_result
+			.data
+			.into_iter()
+			.map(|user| UsersListItemDto {
+				id: extract_id(&user.id),
+				fullname: user.fullname,
+				email: user.email,
+				avatar: user.avatar,
+				phone_number: user.phone_number,
+				referred_by: user.referred_by,
+				referral_code: user.referral_code,
+				student_type: user.student_type,
+				is_active: user.is_active,
+				role: user.role.unwrap_or_else(|| "-".into()), // Handle role safely
+			})
+			.collect::<Vec<_>>();
+
 		Ok(ResponseListSuccessDto {
-			data: raw_result.data,
+			data: transformed_data,
 			meta: raw_result.meta,
 		})
 	}
 
-	pub async fn query_user_by_email(&self, email: String) -> Result<UsersSchema> {
+	pub async fn query_user_by_email(&self, email: String) -> Result<UsersItemDtoRaw> {
 		let db = &self.state.surrealdb_ws;
 		let sql = format!(
-			"SELECT * FROM {} WHERE email = $email AND is_deleted = false",
+			"SELECT *, role AS role FROM {} WHERE email = $email AND is_deleted = false LIMIT 1 FETCH role, role.permissions",
 			ResourceEnum::Users.to_string()
 		);
-		let mut response: Vec<UsersSchema> = db
+
+		let response: Option<UsersItemDtoRaw> = db
 			.query(sql)
 			.bind(("email", email.clone()))
 			.await?
 			.take(0)?;
-		match response.pop() {
-			Some(user) => Ok(user),
-			None => bail!("User not found"),
+
+		match response {
+			Some(user) if !user.role.is_deleted => {
+				let permissions = user
+					.role
+					.permissions
+					.into_iter()
+					.map(|perm| PermissionsItemDtoRaw {
+						id: perm.id,
+						name: perm.name,
+						created_at: perm.created_at,
+						updated_at: perm.updated_at,
+					})
+					.collect::<Vec<_>>();
+				Ok(UsersItemDtoRaw {
+					id: user.id,
+					fullname: user.fullname,
+					email: user.email,
+					avatar: user.avatar,
+					phone_number: user.phone_number,
+					referred_by: user.referred_by,
+					referral_code: user.referral_code,
+					student_type: user.student_type,
+					is_active: user.is_active,
+					is_deleted: user.is_deleted,
+					is_profile_completed: user.is_profile_completed,
+					identity_number: user.identity_number,
+					religion: user.religion,
+					gender: user.gender,
+					birthdate: user.birthdate,
+					password: user.password,
+					created_at: user.created_at,
+					updated_at: user.updated_at,
+					role: RolesItemDtoRaw {
+						id: user.role.id,
+						name: user.role.name,
+						permissions,
+						created_at: user.role.created_at,
+						updated_at: user.role.updated_at,
+						is_deleted: user.role.is_deleted,
+					},
+				})
+			}
+			_ => bail!("User not found"),
 		}
 	}
 
-	pub async fn query_user_by_id(&self, id: String) -> Result<UsersSchema> {
+	pub async fn query_user_by_id(&self, id: String) -> Result<UsersItemDto> {
 		let db = &self.state.surrealdb_ws;
-		let result: Option<UsersSchema> = db
-			.select((ResourceEnum::Users.to_string(), id.clone()))
-			.await?;
-		match result {
-			Some(response) if !response.is_deleted => Ok(response),
+
+		let query = format!(
+			"SELECT *, role AS role FROM app_users:⟨{}⟩ FETCH role, role.permissions",
+			id
+		);
+
+		let mut result = db.query(query).await?;
+
+		let response: Option<UsersItemDtoRaw> = result.take(0)?;
+
+		match response {
+			Some(user) if !user.role.is_deleted => {
+				let permissions = user
+					.role
+					.permissions
+					.into_iter()
+					.map(|perm| PermissionsItemDto {
+						id: extract_id(&perm.id),
+						name: perm.name,
+						created_at: perm.created_at,
+						updated_at: perm.updated_at,
+					})
+					.collect::<Vec<_>>();
+
+				Ok(UsersItemDto {
+					id: extract_id(&user.id),
+					fullname: user.fullname,
+					email: user.email,
+					avatar: user.avatar,
+					phone_number: user.phone_number,
+					referred_by: user.referred_by,
+					referral_code: user.referral_code,
+					student_type: user.student_type,
+					is_active: user.is_active,
+					is_deleted: user.is_deleted,
+					is_profile_completed: user.is_profile_completed,
+					identity_number: user.identity_number,
+					religion: user.religion,
+					gender: user.gender,
+					birthdate: user.birthdate,
+					password: user.password,
+					role: RolesItemDto {
+						id: extract_id(&user.role.id),
+						name: user.role.name,
+						permissions,
+						created_at: user.role.created_at,
+						updated_at: user.role.updated_at,
+					},
+					created_at: user.created_at,
+					updated_at: user.updated_at,
+				})
+			}
 			_ => bail!("User not found"),
 		}
 	}
@@ -196,13 +304,13 @@ impl<'a> UsersRepository<'a> {
 	) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
 		let user = self.query_user_by_email(email).await?;
-		let record_key = get_id(&user.id)?;
 		let record: Option<UsersSetNewPasswordSchema> = db
-			.update(record_key)
+			.update((ResourceEnum::Users.to_string(), user.id.id.to_raw()))
 			.merge(UsersSetNewPasswordSchema {
 				password: data.password.clone(),
 			})
 			.await?;
+		dbg!(record.clone());
 		match record {
 			Some(_) => Ok("Success update password user".into()),
 			None => bail!("Failed to update password user"),
@@ -216,7 +324,8 @@ impl<'a> UsersRepository<'a> {
 		if user.is_deleted {
 			bail!("User already deleted");
 		}
-		let record_key = get_id(&user.id)?;
+		let id = make_thing(&ResourceEnum::Users.to_string(), &user.id);
+		let record_key = get_id(&id)?;
 		let record: Option<UsersSchema> = db
 			.update(record_key)
 			.merge(serde_json::json!({ "is_deleted": true }))

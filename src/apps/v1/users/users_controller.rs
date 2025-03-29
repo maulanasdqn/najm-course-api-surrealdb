@@ -1,14 +1,15 @@
 use axum::extract::{Path, Query};
+use axum::http::HeaderMap;
 use axum::response::IntoResponse;
 use axum::{Extension, Json};
 
 use crate::{v1::users_service::UsersService, AppState, MetaRequestDto};
 use crate::{
 	MessageResponseDto, ResponseListSuccessDto, ResponseSuccessDto,
-	UsersActiveInactiveRequestDto, UsersCreateRequestDto, UsersItemDto,
+	UsersActiveInactiveRequestDto, UsersCreateRequestDto, UsersDetailItemDto,
 };
 
-use super::UsersUpdateRequestDto;
+use super::{UsersListItemDto, UsersUpdateRequestDto};
 
 #[utoipa::path(
 	get,
@@ -26,7 +27,7 @@ use super::UsersUpdateRequestDto;
 		("filter_by" = Option<String>, Query, description = "Field to filter by"),
 	),
 	responses(
-		(status = 200, description = "Get user list", body = ResponseListSuccessDto<Vec<UsersItemDto>>)
+		(status = 200, description = "Get user list", body = ResponseListSuccessDto<Vec<UsersListItemDto>>)
 	),
 	tag = "Users"
 )]
@@ -47,7 +48,7 @@ pub async fn get_user_list(
 		("id" = String, Path, description = "User ID")
 	),
 	responses(
-		(status = 200, description = "Get user by ID", body = ResponseSuccessDto<UsersItemDto>)
+		(status = 200, description = "Get user by ID", body = ResponseSuccessDto<UsersDetailItemDto>)
 	),
 	tag = "Users"
 )]
@@ -56,6 +57,24 @@ pub async fn get_user_by_id(
 	Path(id): Path<String>,
 ) -> impl IntoResponse {
 	UsersService::get_user_by_id(&state, id).await
+}
+
+#[utoipa::path(
+	get,
+	security(
+        ("Bearer" = [])
+    ),
+	path = "/v1/users/me",
+	responses(
+		(status = 200, description = "Get user by ID", body = ResponseSuccessDto<UsersDetailItemDto>)
+	),
+	tag = "Users"
+)]
+pub async fn get_user_me(
+	Extension(state): Extension<AppState>,
+	header: HeaderMap,
+) -> impl IntoResponse {
+	UsersService::get_user_me(header, &state).await
 }
 
 #[utoipa::path(
@@ -83,7 +102,7 @@ pub async fn post_create_user(
         ("Bearer" = [])
     ),
 	path = "/v1/users/update/{id}",
-	request_body = UsersCreateRequestDto,
+	request_body = UsersUpdateRequestDto,
 	responses(
 		(status = 200, description = "Update user", body = MessageResponseDto)
 	),
@@ -95,6 +114,26 @@ pub async fn put_update_user(
 	Json(payload): Json<UsersUpdateRequestDto>,
 ) -> impl IntoResponse {
 	UsersService::update_user(&state, id, payload).await
+}
+
+#[utoipa::path(
+	put,
+	security(
+        ("Bearer" = [])
+    ),
+	path = "/v1/users/update/me",
+	request_body = UsersUpdateRequestDto,
+	responses(
+		(status = 200, description = "Update user me", body = MessageResponseDto)
+	),
+	tag = "Users"
+)]
+pub async fn put_update_user_me(
+	Extension(state): Extension<AppState>,
+	header: HeaderMap,
+	Json(payload): Json<UsersUpdateRequestDto>,
+) -> impl IntoResponse {
+	UsersService::update_user_me(&state, header, payload).await
 }
 
 #[utoipa::path(

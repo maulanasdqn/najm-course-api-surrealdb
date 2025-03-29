@@ -1,4 +1,4 @@
-use crate::ResourceEnum;
+use crate::{get_iso_date, ResourceEnum};
 use serde::{Deserialize, Serialize};
 use surrealdb::{
 	sql::{Id, Thing},
@@ -24,8 +24,8 @@ pub struct UsersSchema {
 	pub birthdate: Option<String>,
 	pub is_profile_completed: bool,
 	pub role: Thing,
-	pub created_at: Option<String>,
-	pub updated_at: Option<String>,
+	pub created_at: String,
+	pub updated_at: String,
 }
 
 impl Default for UsersSchema {
@@ -54,8 +54,8 @@ impl Default for UsersSchema {
 				ResourceEnum::Roles.to_string(),
 				Id::String(Uuid::new_v4().to_string()),
 			)),
-			created_at: None,
-			updated_at: None,
+			created_at: get_iso_date(),
+			updated_at: get_iso_date(),
 		}
 	}
 }

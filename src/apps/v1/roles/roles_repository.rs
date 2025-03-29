@@ -1,8 +1,9 @@
 use super::{
-	RolesItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, RolesSchema,
+	RolesItemByIdDto, RolesItemByIdDtoRaw, RolesRequestCreateDto,
+	RolesRequestUpdateDto, RolesSchema,
 };
 use crate::{
-	get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto,
+	extract_id, get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto,
 	PermissionsItemDto, ResourceEnum, ResponseListSuccessDto,
 };
 use anyhow::{bail, Result};
@@ -50,30 +51,30 @@ impl<'a> RolesRepository<'a> {
 		.await
 	}
 
-	pub async fn query_role_by_name(&self, name: String) -> Result<RolesItemDto> {
+	pub async fn query_role_by_name(&self, name: String) -> Result<RolesItemByIdDto> {
 		let db = &self.state.surrealdb_ws;
 		let sql = format!(
-			"SELECT * FROM {} WHERE name = $name AND is_deleted = false",
+			"SELECT *, permissions FROM {} WHERE name = $name AND is_deleted = false LIMIT 1 FETCH permissions",
 			ResourceEnum::Roles.to_string()
 		);
-		let mut response: Vec<RolesSchema> =
-			db.query(sql).bind(("name", name.clone())).await?.take(0)?;
-
-		let role = match response.pop() {
-			Some(r) => r,
-			None => bail!("Role not found"),
+		let mut result = db.query(sql).bind(("name", name.clone())).await?;
+		let role: Option<RolesItemByIdDtoRaw> = result.take(0)?;
+		let role = match role {
+			Some(r) if !r.is_deleted => r,
+			_ => bail!("Role not found"),
 		};
-		let mut permissions: Vec<PermissionsItemDto> = Vec::new();
-		for permission_thing in &role.permissions {
-			let result: Option<PermissionsItemDto> = db
-				.select((permission_thing.tb.clone(), permission_thing.id.to_string()))
-				.await?;
-			if let Some(p) = result {
-				permissions.push(p);
-			}
-		}
-		Ok(RolesItemDto {
-			id: role.id.id.to_raw(),
+		let permissions = role
+			.permissions
+			.into_iter()
+			.map(|perm| PermissionsItemDto {
+				id: extract_id(&perm.id),
+				name: perm.name,
+				created_at: perm.created_at,
+				updated_at: perm.updated_at,
+			})
+			.collect::<Vec<_>>();
+		Ok(RolesItemByIdDto {
+			id: extract_id(&role.id),
 			name: role.name,
 			is_deleted: role.is_deleted,
 			permissions,
@@ -82,31 +83,31 @@ impl<'a> RolesRepository<'a> {
 		})
 	}
 
-	pub async fn query_role_by_id(&self, id: String) -> Result<RolesItemDto> {
+	pub async fn query_role_by_id(&self, id: String) -> Result<RolesItemByIdDto> {
 		let db = &self.state.surrealdb_ws;
-
-		let role: Option<RolesSchema> = db
-			.select((ResourceEnum::Roles.to_string(), id.clone()))
-			.await?;
-
+		let query = format!(
+			"SELECT *, permissions.* AS permissions
+			FROM app_roles:⟨{}⟩ WHERE is_deleted = false FETCH permissions",
+			id
+		);
+		let mut result = db.query(query).await?;
+		let role: Option<RolesItemByIdDtoRaw> = result.take(0)?;
 		let role = match role {
 			Some(r) if !r.is_deleted => r,
 			_ => bail!("Role not found"),
 		};
-
-		let mut permissions: Vec<PermissionsItemDto> = Vec::new();
-
-		for permission_thing in &role.permissions {
-			let result: Option<PermissionsItemDto> = db
-				.select((permission_thing.tb.clone(), permission_thing.id.to_string()))
-				.await?;
-			if let Some(p) = result {
-				permissions.push(p);
-			}
-		}
-
-		Ok(RolesItemDto {
-			id: role.id.id.to_raw(),
+		let permissions = role
+			.permissions
+			.into_iter()
+			.map(|perm| PermissionsItemDto {
+				id: extract_id(&perm.id),
+				name: perm.name,
+				created_at: perm.created_at,
+				updated_at: perm.updated_at,
+			})
+			.collect::<Vec<_>>();
+		Ok(RolesItemByIdDto {
+			id: extract_id(&role.id),
 			name: role.name,
 			is_deleted: role.is_deleted,
 			permissions,

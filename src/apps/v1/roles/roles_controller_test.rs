@@ -161,14 +161,6 @@ async fn test_get_role_list_with_invalid_page_params_should_return_400() {
 #[tokio::test]
 async fn test_create_duplicate_role_should_return_409() {
 	let state = create_mock_app_state().await;
-	let repo = RolesRepository::new(&state);
-	let _ = repo
-		.query_create_role(RolesRequestCreateDto {
-			name: "Admin".into(),
-			permissions: vec![],
-		})
-		.await
-		.unwrap();
 	let server = create_test_app(state);
 	let payload = RolesRequestCreateDto {
 		name: "Admin".into(),

@@ -1,4 +1,4 @@
-use crate::UsersItemDto;
+use crate::RolesItemDto;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -21,9 +21,28 @@ pub struct AuthLoginRequestDto {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct AuthUserItemDto {
+	pub id: String,
+	pub role: RolesItemDto,
+	pub fullname: String,
+	pub email: String,
+	pub avatar: Option<String>,
+	pub phone_number: String,
+	pub referred_by: Option<String>,
+	pub referral_code: Option<String>,
+	pub student_type: String,
+	pub is_active: bool,
+	pub is_profile_completed: bool,
+	pub identity_number: Option<String>,
+	pub religion: Option<String>,
+	pub gender: Option<String>,
+	pub birthdate: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct AuthLoginResponsetDto {
 	pub token: TokenDto,
-	pub user: UsersItemDto,
+	pub user: AuthUserItemDto,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
