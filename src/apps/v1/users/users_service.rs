@@ -35,7 +35,7 @@ impl UsersService {
 	pub async fn get_user_by_id(state: &AppState, id: String) -> Response {
 		let repo = UsersRepository::new(state);
 		match repo.query_user_by_id(id).await {
-			Ok(user) => success_response(ResponseSuccessDto {
+			Ok(user) if !user.is_deleted => success_response(ResponseSuccessDto {
 				data: UsersDetailItemDto {
 					id: user.id,
 					role: user.role,
@@ -54,6 +54,7 @@ impl UsersService {
 					birthdate: user.birthdate,
 				},
 			}),
+			Ok(_) => common_response(StatusCode::NOT_FOUND, "User not found"),
 			Err(e) => common_response(StatusCode::NOT_FOUND, &e.to_string()),
 		}
 	}

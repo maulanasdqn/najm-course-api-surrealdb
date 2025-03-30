@@ -38,6 +38,8 @@ async fn test_list_users_should_fail_with_invalid_page() {
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
 	let res = server.get("/v1/users?page=0&per_page=10").await;
+	dbg!(res.text());
+	dbg!(res.status_code());
 	assert_eq!(res.status_code(), StatusCode::BAD_REQUEST);
 }
 
@@ -114,7 +116,7 @@ async fn test_create_user_should_return_201() {
 	let server = TestServer::new(app).unwrap();
 	let payload = UsersCreateRequestDto {
 		fullname: "Create Data #1".into(),
-		email: "test@create.com".into(),
+		email: format!("test-{}@create.com", Uuid::new_v4()).into(),
 		role_id,
 		password: "Password1!".into(),
 		student_type: "general".into(),
@@ -247,9 +249,10 @@ async fn test_update_user_should_return_200() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state.clone()));
 	let server = TestServer::new(app).unwrap();
+	let unique_email = format!("update_{}@test.com", Uuid::new_v4());
 	let payload = UsersCreateRequestDto {
 		fullname: "Old Name".into(),
-		email: "update@test.com".into(),
+		email: unique_email.clone(),
 		password: "Password1!".into(),
 		role_id: role_id.clone(),
 		student_type: "general".into(),
@@ -258,15 +261,16 @@ async fn test_update_user_should_return_200() {
 		referral_code: None,
 		referred_by: None,
 	};
-	server.post("/v1/users/create").json(&payload).await;
-	let user = repo.query_user_by_email(payload.email).await.unwrap();
+	let create_res = server.post("/v1/users/create").json(&payload).await;
+	assert_eq!(create_res.status_code(), StatusCode::CREATED);
+	let user = repo.query_user_by_email(unique_email).await.unwrap();
 	let user_id = user.id.id.to_raw();
 	let update_payload = UsersUpdateRequestDto {
 		fullname: "Updated Name".into(),
-		email: "update@test.com".into(),
+		email: payload.email.clone(),
 		student_type: "general".into(),
 		phone_number: "081234567890".into(),
-		role_id: role_id.clone(),
+		role_id: user.role.id.id.to_raw(),
 		is_active: true,
 		referral_code: None,
 		referred_by: None,
@@ -281,7 +285,8 @@ async fn test_update_user_should_return_200() {
 		.json(&update_payload)
 		.await;
 	let status = res.status_code();
-	assert_eq!(status, StatusCode::OK);
+	let body = res.text();
+	assert_eq!(status, StatusCode::OK, "Response body: {}", body);
 }
 
 #[tokio::test]
@@ -297,9 +302,10 @@ async fn test_create_user_should_fail_if_email_taken() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state.clone()));
 	let server = TestServer::new(app).unwrap();
+	let email = format!("test_{}@example.com", Uuid::new_v4());
 	let payload = UsersCreateRequestDto {
 		fullname: "User Satu".into(),
-		email: "taken@example.com".into(),
+		email: email.clone(),
 		password: "Password1!".into(),
 		student_type: "general".into(),
 		role_id,
@@ -362,7 +368,7 @@ async fn test_delete_user_should_fail_if_already_deleted() {
 	let res2 = server.delete(&format!("/v1/users/delete/{}", id)).await;
 	assert_eq!(res2.status_code(), StatusCode::BAD_REQUEST);
 	let body = res2.text();
-	assert!(body.contains("User not found"));
+	assert!(body.contains("User already deleted"));
 }
 
 #[tokio::test]
@@ -531,6 +537,7 @@ async fn test_user_detail_should_fail_if_user_is_soft_deleted() {
 	let user_id = user.id.id.to_raw();
 	let _ = repo.query_delete_user(user_id.clone()).await.unwrap();
 	let res = server.get(&format!("/v1/users/detail/{}", user_id)).await;
+	dbg!(res.text());
 	assert_eq!(res.status_code(), StatusCode::NOT_FOUND);
 	let body = res.text();
 	assert!(body.contains("User not found"));
@@ -586,7 +593,7 @@ async fn test_update_user_should_fail_if_user_is_deleted() {
 		.await;
 	assert_eq!(res.status_code(), StatusCode::BAD_REQUEST);
 	let body = res.text();
-	assert!(body.contains("User not found"));
+	assert!(body.contains("User already deleted"));
 }
 
 #[tokio::test]

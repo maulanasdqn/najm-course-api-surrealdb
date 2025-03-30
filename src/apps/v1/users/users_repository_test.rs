@@ -210,7 +210,7 @@ async fn test_delete_user_twice_should_fail_on_second_attempt() {
 	assert!(first.is_ok());
 	let second = repo.query_delete_user(user.id.id.to_raw()).await;
 	assert!(second.is_err());
-	assert_eq!(second.unwrap_err().to_string(), "User not found");
+	assert_eq!(second.unwrap_err().to_string(), "User already deleted");
 }
 
 #[tokio::test]

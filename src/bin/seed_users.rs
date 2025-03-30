@@ -1,7 +1,30 @@
-use najm_course_api::{get_iso_date, make_thing, Env};
-use serde_json::json;
+use najm_course_api::{get_iso_date, hash_password, Env};
+use serde::{Deserialize, Serialize};
 use std::error::Error;
-use surrealdb::{engine::remote::ws::Ws, opt::auth::Root, Surreal};
+use surrealdb::{engine::remote::ws::Ws, opt::auth::Root, sql::Thing, Surreal};
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct UsersSchema {
+	pub id: Thing,
+	pub fullname: String,
+	pub email: String,
+	pub password: String,
+	pub avatar: Option<String>,
+	pub phone_number: String,
+	pub referral_code: Option<String>,
+	pub referred_by: Option<String>,
+	pub identity_number: Option<String>,
+	pub is_active: bool,
+	pub is_deleted: bool,
+	pub student_type: String,
+	pub religion: Option<String>,
+	pub gender: Option<String>,
+	pub birthdate: Option<String>,
+	pub is_profile_completed: bool,
+	pub role: Thing,
+	pub created_at: String,
+	pub updated_at: String,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -15,6 +38,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 	db.use_ns(env.surrealdb_namespace)
 		.use_db(env.surrealdb_dbname)
 		.await?;
+
 	let users = vec![
 		(
 			"c3b1d6a8-8d4f-4b36-b789-2e532ec7a7b2",
@@ -35,26 +59,37 @@ async fn main() -> Result<(), Box<dyn Error>> {
 			"5713cb37-dc02-4e87-8048-d7a41d352059",
 		),
 	];
-	for (id, email, name, role_id) in users {
-		db.query("CREATE type::thing('app_users', $id) CONTENT $data")
-			.bind(("id", id))
-			.bind((
-				"data",
-				json!({
-						"email": email,
-						"name": name,
-						"phone_number": "081234567890",
-						"student_type": "TNI",
-						"role": make_thing("app_roles", role_id),
-						"is_deleted": false,
-						"created_at": get_iso_date(),
-						"updated_at": get_iso_date(),
-				}),
-			))
+
+	for (id, email, fullname, role_id) in users {
+		let user = UsersSchema {
+			id: Thing::from(("app_users", id)),
+			fullname: fullname.into(),
+			email: email.into(),
+			password: hash_password("password").unwrap(),
+			avatar: None,
+			phone_number: "081234567890".into(),
+			referral_code: None,
+			referred_by: None,
+			identity_number: None,
+			is_active: true,
+			is_deleted: false,
+			student_type: "TNI".into(),
+			religion: None,
+			gender: None,
+			birthdate: None,
+			is_profile_completed: false,
+			role: Thing::from(("app_roles", role_id)),
+			created_at: get_iso_date(),
+			updated_at: get_iso_date(),
+		};
+
+		db.create::<Option<UsersSchema>>(("app_users", id))
+			.content(user)
 			.await?;
 
-		println!("✅ Inserted user: {} ({})", name, email);
+		println!("✅ Inserted user: {} ({})", fullname, email);
 	}
+
 	println!("✅ Semua users berhasil disimpan ke SurrealDB!");
 	Ok(())
 }

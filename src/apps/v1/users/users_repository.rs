@@ -7,7 +7,7 @@ use crate::{
 	PermissionsItemDto, PermissionsItemDtoRaw, ResourceEnum, ResponseListSuccessDto,
 	RolesItemDto, RolesItemDtoRaw,
 };
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 
 pub struct UsersRepository<'a> {
 	state: &'a AppState,
@@ -45,7 +45,14 @@ impl<'a> UsersRepository<'a> {
 		};
 
 		let limit = meta.per_page.unwrap_or(10);
-		let start = (meta.page.unwrap_or(1) - 1) * limit;
+		let page = meta.page.unwrap_or(1);
+
+		// Validate pagination parameters explicitly
+		if page < 1 || limit < 1 {
+			return Err(anyhow!("Invalid pagination parameters"));
+		}
+
+		let start = (page - 1) * limit;
 
 		let select_query = format!(
 			"
@@ -98,7 +105,7 @@ impl<'a> UsersRepository<'a> {
 				referral_code: user.referral_code,
 				student_type: user.student_type,
 				is_active: user.is_active,
-				role: user.role.unwrap_or_else(|| "-".into()), // Handle role safely
+				role: user.role.unwrap_or_else(|| "-".into()),
 			})
 			.collect::<Vec<_>>();
 
@@ -247,6 +254,7 @@ impl<'a> UsersRepository<'a> {
 		let merged = UsersSchema {
 			password: existing.password,
 			created_at: existing.created_at,
+			role: make_thing("app_roles", &existing.role.id),
 			..data.clone()
 		};
 		let record: Option<UsersSchema> = db.update(record_key).merge(merged).await?;
@@ -264,7 +272,7 @@ impl<'a> UsersRepository<'a> {
 		let db = &self.state.surrealdb_ws;
 		let user = self.query_user_by_email(email.clone()).await?;
 		if user.is_deleted {
-			bail!("User not found");
+			bail!("User already deleted");
 		}
 		let record_key = get_id(&user.id)?;
 		let record: Option<UsersSchema> = db
