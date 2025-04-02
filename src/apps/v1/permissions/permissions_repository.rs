@@ -1,7 +1,7 @@
-use super::PermissionsSchema;
+use super::{PermissionsItemDto, PermissionsItemDtoRaw, PermissionsSchema};
 use crate::{
-	get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto, ResourceEnum,
-	ResponseListSuccessDto,
+	get_id, get_iso_date, make_thing, query_list_with_meta, AppState, MetaRequestDto,
+	ResourceEnum, ResponseListSuccessDto,
 };
 use anyhow::{bail, Result};
 
@@ -17,23 +17,31 @@ impl<'a> PermissionsRepository<'a> {
 	pub async fn query_permission_list(
 		&self,
 		meta: MetaRequestDto,
-	) -> Result<ResponseListSuccessDto<Vec<PermissionsSchema>>> {
+	) -> Result<ResponseListSuccessDto<Vec<PermissionsItemDto>>> {
 		let mut conditions = vec!["is_deleted = false".into()];
 		if meta.search.is_some() {
-			conditions.push("string::contains(name, $search)".into());
+			conditions
+				.push("string::contains(string::lowercase(name ?? ''), $search)".into());
 		}
 		if meta.filter_by.is_some() && meta.filter.is_some() {
 			let filter_by = meta.filter_by.as_ref().unwrap();
 			conditions.push(format!("{} = $filter", filter_by));
 		}
-		query_list_with_meta(
-			&self.state.surrealdb_ws,
-			&ResourceEnum::Permissions.to_string(),
-			&meta,
-			conditions,
-			None,
-		)
-		.await
+		let raw_result: ResponseListSuccessDto<Vec<PermissionsItemDtoRaw>> =
+			query_list_with_meta(
+				&self.state.surrealdb_ws,
+				&ResourceEnum::Permissions.to_string(),
+				&meta,
+				conditions,
+				None,
+			)
+			.await?;
+		let clean_result = ResponseListSuccessDto {
+			data: raw_result.data.into_iter().map(Into::into).collect(),
+			meta: raw_result.meta,
+		};
+
+		Ok(clean_result)
 	}
 
 	pub async fn query_permission_by_id(
@@ -56,7 +64,7 @@ impl<'a> PermissionsRepository<'a> {
 	) -> Result<PermissionsSchema> {
 		let db = &self.state.surrealdb_ws;
 		let sql = format!(
-			"SELECT * FROM {} WHERE name = $name AND is_deleted = false",
+			"SELECT * FROM {} WHERE name = $name AND is_deleted = false LIMIT 1",
 			ResourceEnum::Permissions.to_string()
 		);
 		let result: Vec<PermissionsSchema> =
@@ -95,6 +103,7 @@ impl<'a> PermissionsRepository<'a> {
 		}
 		let merged = PermissionsSchema {
 			created_at: existing.created_at,
+			updated_at: Some(get_iso_date()),
 			..data.clone()
 		};
 		let record: Option<PermissionsSchema> =

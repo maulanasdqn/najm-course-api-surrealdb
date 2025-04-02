@@ -53,31 +53,28 @@ pub struct UsersCreateRequestDto {
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct UsersUpdateRequestDto {
-	#[validate(
-		length(min = 1, message = "Email cannot be empty"),
-		email(message = "Email not valid")
-	)]
-	pub email: String,
+	#[validate(email(message = "Email not valid"))]
+	pub email: Option<String>,
 	#[validate(length(
 		min = 8,
 		message = "Password must have at least 8 characters"
 	))]
 	#[validate(length(min = 2, message = "Fullname at least have 2 character"))]
-	pub fullname: String,
+	pub fullname: Option<String>,
 	#[validate(length(min = 1, message = "Student type is required"))]
-	pub student_type: String,
+	pub student_type: Option<String>,
 	#[validate(length(
 		min = 10,
 		message = "Phone number at least have 10 character"
 	))]
-	pub phone_number: String,
+	pub phone_number: Option<String>,
 	#[validate(length(
 		max = 4,
 		message = "Referal code cannot be more than 4 character"
 	))]
 	pub referral_code: Option<String>,
 	pub referred_by: Option<String>,
-	pub is_active: bool,
+	pub is_active: Option<bool>,
 	#[validate(length(min = 16, message = "NIK at least have 16 character"))]
 	pub identity_number: Option<String>,
 	#[validate(length(min = 1, message = "Religion is required"))]
@@ -88,7 +85,7 @@ pub struct UsersUpdateRequestDto {
 	pub birthdate: Option<String>,
 	#[validate(length(min = 1, message = "Avatar is required"))]
 	pub avatar: Option<String>,
-	pub role_id: String,
+	pub role_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]

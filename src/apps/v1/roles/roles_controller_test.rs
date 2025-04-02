@@ -74,6 +74,7 @@ async fn test_put_update_role_should_return_200() {
 	let payload = RolesRequestUpdateDto {
 		name: Some("Updated Role".into()),
 		permissions: Some(vec![]),
+		overwrite: None,
 	};
 	let res = server
 		.put(&format!("/v1/roles/update/{}", id))
@@ -131,6 +132,7 @@ async fn test_put_update_nonexistent_role_should_return_404() {
 	let payload = RolesRequestUpdateDto {
 		name: Some("Does Not Exist".into()),
 		permissions: Some(vec![]),
+		overwrite: None,
 	};
 	let res = server
 		.put("/v1/roles/update/nonexistent-id")

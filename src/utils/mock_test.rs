@@ -1,4 +1,5 @@
 use crate::{hash_password, AppState, UsersSchema};
+use axum_test::{TestResponse, TestServer};
 use surrealdb::{
 	engine::{local::Mem, remote::ws::Ws},
 	opt::auth::Root,
@@ -77,5 +78,31 @@ pub fn create_test_user(
 		is_profile_completed: false,
 		role: make_thing("app_roles", role_id),
 		..Default::default()
+	}
+}
+
+pub fn test_auth_token_with_permissions(perms: Vec<&str>) -> String {
+	let permissions_str = perms.join(",");
+	format!("Bearer test-token:{}", permissions_str)
+}
+
+pub async fn authorized(
+	server: &TestServer,
+	method: &str,
+	path: &str,
+	permissions: Vec<&str>,
+) -> TestResponse {
+	let token = test_auth_token_with_permissions(permissions);
+	match method {
+		"GET" => server.get(path).add_header("Authorization", &token).await,
+		"POST" => server.post(path).add_header("Authorization", &token).await,
+		"PUT" => server.put(path).add_header("Authorization", &token).await,
+		"DELETE" => {
+			server
+				.delete(path)
+				.add_header("Authorization", &token)
+				.await
+		}
+		_ => panic!("Unsupported HTTP method"),
 	}
 }

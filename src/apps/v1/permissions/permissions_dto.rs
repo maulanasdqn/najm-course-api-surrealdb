@@ -24,3 +24,14 @@ pub struct PermissionsItemDtoRaw {
 	pub created_at: Option<String>,
 	pub updated_at: Option<String>,
 }
+
+impl From<PermissionsItemDtoRaw> for PermissionsItemDto {
+	fn from(raw: PermissionsItemDtoRaw) -> Self {
+		Self {
+			id: raw.id.id.to_raw(),
+			name: raw.name,
+			created_at: raw.created_at,
+			updated_at: raw.updated_at,
+		}
+	}
+}

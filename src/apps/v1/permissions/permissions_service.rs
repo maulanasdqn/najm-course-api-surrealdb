@@ -6,7 +6,7 @@ use crate::{
 use axum::http::StatusCode;
 use axum::response::Response;
 
-use super::PermissionsRequestDto;
+use super::{PermissionsItemDto, PermissionsRequestDto};
 
 pub struct PermissionsService;
 
@@ -27,16 +27,18 @@ impl PermissionsService {
 			Err(e) => common_response(StatusCode::BAD_REQUEST, &e.to_string()),
 		}
 	}
-
 	pub async fn get_permission_by_id(state: &AppState, id: String) -> Response {
 		let repo = PermissionsRepository::new(state);
 		match repo.query_permission_by_id(id).await {
-			Ok(permission) => success_response(ResponseSuccessDto { data: permission }),
+			Ok(permission_raw) => {
+				let permission: PermissionsItemDto = permission_raw.into();
+				success_response(ResponseSuccessDto { data: permission })
+			}
 			Err(e) => common_response(StatusCode::NOT_FOUND, &e.to_string()),
 		}
 	}
 
-	pub async fn create_role(
+	pub async fn create_permission(
 		state: &AppState,
 		payload: PermissionsRequestDto,
 	) -> Response {

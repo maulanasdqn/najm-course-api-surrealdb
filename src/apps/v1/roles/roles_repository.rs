@@ -1,6 +1,8 @@
+use std::collections::HashSet;
+
 use super::{
 	RolesItemByIdDto, RolesItemByIdDtoRaw, RolesRequestCreateDto,
-	RolesRequestUpdateDto, RolesSchema,
+	RolesRequestUpdateDto, RolesResponseDto, RolesSchema,
 };
 use crate::{
 	extract_id, get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto,
@@ -32,23 +34,29 @@ impl<'a> RolesRepository<'a> {
 	pub async fn query_role_list(
 		&self,
 		meta: MetaRequestDto,
-	) -> Result<ResponseListSuccessDto<Vec<RolesSchema>>> {
+	) -> Result<ResponseListSuccessDto<Vec<RolesResponseDto>>> {
 		let mut conditions = vec!["is_deleted = false".into()];
 		if meta.search.is_some() {
-			conditions.push("string::contains(name, $search)".into());
+			conditions
+				.push("string::contains(string::lowercase(name ?? ''), $search)".into());
 		}
 		if meta.filter_by.is_some() && meta.filter.is_some() {
 			let filter_by = meta.filter_by.as_ref().unwrap();
 			conditions.push(format!("{} = $filter", filter_by));
 		}
-		query_list_with_meta(
+		let raw = query_list_with_meta::<RolesSchema>(
 			&self.state.surrealdb_ws,
 			&ResourceEnum::Roles.to_string(),
 			&meta,
 			conditions,
 			None,
 		)
-		.await
+		.await?;
+		let transformed = raw.data.into_iter().map(RolesResponseDto::from).collect();
+		Ok(ResponseListSuccessDto {
+			data: transformed,
+			meta: raw.meta,
+		})
 	}
 
 	pub async fn query_role_by_name(&self, name: String) -> Result<RolesItemByIdDto> {
@@ -76,7 +84,6 @@ impl<'a> RolesRepository<'a> {
 		Ok(RolesItemByIdDto {
 			id: extract_id(&role.id),
 			name: role.name,
-			is_deleted: role.is_deleted,
 			permissions,
 			created_at: role.created_at,
 			updated_at: role.updated_at,
@@ -109,7 +116,6 @@ impl<'a> RolesRepository<'a> {
 		Ok(RolesItemByIdDto {
 			id: extract_id(&role.id),
 			name: role.name,
-			is_deleted: role.is_deleted,
 			permissions,
 			created_at: role.created_at,
 			updated_at: role.updated_at,
@@ -121,14 +127,12 @@ impl<'a> RolesRepository<'a> {
 		payload: RolesRequestCreateDto,
 	) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
-
 		let role_id = Uuid::new_v4().to_string();
 		let permission_things: Vec<Thing> = payload
 			.permissions
 			.iter()
 			.map(|id| make_thing(&ResourceEnum::Permissions.to_string(), id))
 			.collect();
-
 		let role = RolesSchema {
 			id: make_thing(&ResourceEnum::Roles.to_string(), &role_id),
 			name: payload.name,
@@ -137,12 +141,10 @@ impl<'a> RolesRepository<'a> {
 			created_at: Some(crate::get_iso_date()),
 			updated_at: Some(crate::get_iso_date()),
 		};
-
 		let _: Option<RolesSchema> = db
 			.create((&ResourceEnum::Roles.to_string(), role_id))
 			.content(role)
 			.await?;
-
 		Ok("Role with permissions created successfully".into())
 	}
 
@@ -157,17 +159,31 @@ impl<'a> RolesRepository<'a> {
 		if existing.is_deleted {
 			bail!("Role already deleted");
 		}
-		let permissions: Vec<Thing> = if let Some(permission_ids) = &data.permissions {
-			permission_ids
-				.iter()
-				.map(|id| make_thing(&ResourceEnum::Permissions.to_string(), id))
-				.collect()
-		} else {
-			existing
-				.permissions
-				.iter()
-				.map(|p| make_thing(&ResourceEnum::Permissions.to_string(), &p.id.to_raw()))
-				.collect()
+		let permissions: Vec<Thing> = {
+			match (&data.permissions, data.overwrite.unwrap_or(false)) {
+				(Some(new_ids), true) => new_ids
+					.iter()
+					.map(|id| make_thing(&ResourceEnum::Permissions.to_string(), id))
+					.collect(),
+				(Some(new_ids), false) => {
+					let mut combined_ids: HashSet<String> =
+						existing.permissions.iter().map(|p| p.id.to_raw()).collect();
+					for id in new_ids {
+						combined_ids.insert(id.clone());
+					}
+					combined_ids
+						.into_iter()
+						.map(|id| make_thing(&ResourceEnum::Permissions.to_string(), &id))
+						.collect()
+				}
+				(None, _) => existing
+					.permissions
+					.iter()
+					.map(|p| {
+						make_thing(&ResourceEnum::Permissions.to_string(), &p.id.to_raw())
+					})
+					.collect(),
+			}
 		};
 		let merged = RolesSchema {
 			id: thing_id,
@@ -188,7 +204,7 @@ impl<'a> RolesRepository<'a> {
 	pub async fn query_delete_role(&self, id: String) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
 		let role_id = make_thing(&ResourceEnum::Roles.to_string(), &id);
-		let role = self.query_role_by_id(role_id.id.to_raw()).await?;
+		let role = self.query_raw_role_by_id(&role_id.id.to_raw()).await?;
 		if role.is_deleted {
 			bail!("Role already deleted");
 		}

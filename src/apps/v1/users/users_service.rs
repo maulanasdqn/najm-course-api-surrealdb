@@ -132,6 +132,7 @@ impl UsersService {
 		user: UsersUpdateRequestDto,
 	) -> Response {
 		let repo = UsersRepository::new(state);
+		let existing_user = repo.query_user_by_id(id.clone()).await.unwrap();
 
 		if let Err((status, message)) = validate_request(&user) {
 			return common_response(status, &message);
@@ -142,14 +143,14 @@ impl UsersService {
 
 		let updated_user = UsersSchema {
 			id: user_id,
-			fullname: user.fullname,
-			email: user.email,
-			phone_number: user.phone_number,
+			fullname: user.fullname.unwrap_or(existing_user.fullname),
+			email: user.email.unwrap_or(existing_user.email),
+			phone_number: user.phone_number.unwrap_or(existing_user.phone_number),
 			referral_code: user.referral_code,
 			referred_by: user.referred_by,
 			identity_number: user.identity_number,
-			is_active: user.is_active,
-			student_type: user.student_type,
+			is_active: user.is_active.unwrap_or(existing_user.is_active),
+			student_type: user.student_type.unwrap_or(existing_user.student_type),
 			religion: user.religion,
 			gender: user.gender,
 			birthdate: user.birthdate,
@@ -173,6 +174,7 @@ impl UsersService {
 	) -> Response {
 		let repo = UsersRepository::new(state);
 		let email = extract_email(&headers).unwrap();
+		let existing_user = repo.query_user_by_email(email.clone()).await.unwrap();
 		let user_data = repo.query_user_by_email(email).await.unwrap();
 		if let Err((status, message)) = validate_request(&user) {
 			return common_response(status, &message);
@@ -182,14 +184,14 @@ impl UsersService {
 		let role_id = make_thing(&ResourceEnum::Roles.to_string(), "");
 		let updated_user = UsersSchema {
 			id: user_id,
-			fullname: user.fullname,
-			email: user.email,
-			phone_number: user.phone_number,
+			fullname: user.fullname.unwrap_or(existing_user.fullname),
+			email: user.email.unwrap_or(existing_user.email),
+			phone_number: user.phone_number.unwrap_or(existing_user.phone_number),
 			referral_code: user.referral_code,
 			referred_by: user.referred_by,
 			identity_number: user.identity_number,
-			is_active: user.is_active,
-			student_type: user.student_type,
+			is_active: user.is_active.unwrap_or(existing_user.is_active),
+			student_type: user.student_type.unwrap_or(existing_user.student_type),
 			religion: user.religion,
 			gender: user.gender,
 			birthdate: user.birthdate,

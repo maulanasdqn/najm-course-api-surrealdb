@@ -28,7 +28,9 @@ impl<'a> UsersRepository<'a> {
 
 		if let Some(search) = meta.search.as_deref() {
 			if !search.is_empty() {
-				conditions.push("string::contains(fullname ?? '', $search)".to_string());
+				conditions.push(
+					"string::contains(string::lowercase(fullname ?? ''), $search)".to_string(),
+				);
 			}
 		}
 

@@ -1,7 +1,7 @@
 use crate::{
-	apps::v1::users_router, create_mock_app_state, RolesEnum, RolesRepository,
-	UsersActiveInactiveRequestDto, UsersCreateRequestDto, UsersRepository,
-	UsersUpdateRequestDto,
+	apps::v1::users_router, authorized, create_mock_app_state, PermissionsEnum,
+	RolesEnum, RolesRepository, UsersActiveInactiveRequestDto, UsersCreateRequestDto,
+	UsersRepository, UsersUpdateRequestDto,
 };
 use axum::{http::StatusCode, Extension};
 use axum_test::TestServer;
@@ -14,9 +14,14 @@ async fn test_get_user_list_should_return_200() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = server.get("/v1/users?page=1&per_page=10").await;
-	let status = res.status_code();
-	assert_eq!(status, StatusCode::OK);
+	let res = authorized(
+		&server,
+		"GET",
+		"/v1/users?page=1&per_page=10",
+		vec![&PermissionsEnum::ReadListUsers.to_string()],
+	)
+	.await;
+	assert_eq!(res.status_code(), StatusCode::OK);
 }
 
 #[tokio::test]
@@ -26,7 +31,13 @@ async fn test_list_users_should_fail_with_invalid_per_page() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = server.get("/v1/users?page=1&per_page=0").await;
+	let res = authorized(
+		&server,
+		"GET",
+		"/v1/users?page=1&per_page=0",
+		vec![&PermissionsEnum::ReadListUsers.to_string()],
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::BAD_REQUEST);
 }
 
@@ -37,7 +48,13 @@ async fn test_list_users_should_fail_with_invalid_page() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = server.get("/v1/users?page=0&per_page=10").await;
+	let res = authorized(
+		&server,
+		"GET",
+		"/v1/users?page=0&per_page=10",
+		vec![&PermissionsEnum::ReadListUsers.to_string()],
+	)
+	.await;
 	dbg!(res.text());
 	dbg!(res.status_code());
 	assert_eq!(res.status_code(), StatusCode::BAD_REQUEST);
@@ -50,9 +67,13 @@ async fn test_list_users_should_ignore_invalid_sort_field() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = server
-		.get("/v1/users?page=1&per_page=10&sort_by=invalid_field")
-		.await;
+	let res = authorized(
+		&server,
+		"GET",
+		"/v1/users?page=1&per_page=10&sort_by=invalid_field",
+		vec![&PermissionsEnum::ReadListUsers.to_string()],
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::OK);
 }
 
@@ -63,9 +84,13 @@ async fn test_list_users_with_search_no_match_should_return_empty() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = server
-		.get("/v1/users?page=1&per_page=10&search=nonexistinguserxyz")
-		.await;
+	let res = authorized(
+		&server,
+		"GET",
+		"/v1/users?page=1&per_page=10&search=nonexistinguserxyz",
+		vec![&PermissionsEnum::ReadListUsers.to_string()],
+	)
+	.await;
 	let body: serde_json::Value = res.json();
 	assert_eq!(res.status_code(), StatusCode::OK);
 	assert_eq!(body["data"].as_array().unwrap().len(), 0);
@@ -78,9 +103,13 @@ async fn test_list_users_should_return_empty_on_invalid_filter() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = server
-		.get("/v1/users?page=1&per_page=10&filter_by=is_active&filter=maybe")
-		.await;
+	let res = authorized(
+		&server,
+		"GET",
+		"/v1/users?page=1&per_page=10&filter_by=is_active&filter=maybe",
+		vec![&PermissionsEnum::ReadListUsers.to_string()],
+	)
+	.await;
 	let body: serde_json::Value = res.json();
 	assert_eq!(res.status_code(), StatusCode::OK);
 	assert_eq!(body["data"].as_array().unwrap().len(), 0);
@@ -93,12 +122,15 @@ async fn test_get_user_list_with_search_should_return_200() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = server
-		.get("/v1/users?page=1&per_page=10&search=maulana")
-		.await;
-	let status = res.status_code();
+	let res = authorized(
+		&server,
+		"GET",
+		"/v1/users?page=1&per_page=10&search=maulana",
+		vec![&PermissionsEnum::ReadListUsers.to_string()],
+	)
+	.await;
 	dbg!(res.text());
-	assert_eq!(status, StatusCode::OK);
+	assert_eq!(res.status_code(), StatusCode::OK);
 }
 
 #[tokio::test]
@@ -266,12 +298,12 @@ async fn test_update_user_should_return_200() {
 	let user = repo.query_user_by_email(unique_email).await.unwrap();
 	let user_id = user.id.id.to_raw();
 	let update_payload = UsersUpdateRequestDto {
-		fullname: "Updated Name".into(),
-		email: payload.email.clone(),
-		student_type: "general".into(),
-		phone_number: "081234567890".into(),
-		role_id: user.role.id.id.to_raw(),
-		is_active: true,
+		fullname: Some("Updated Name".into()),
+		email: Some(payload.email.clone()),
+		student_type: Some("TNI".into()),
+		phone_number: Some("081234567890".into()),
+		role_id: Some(user.role.id.id.to_raw()),
+		is_active: Some(true),
 		referral_code: None,
 		referred_by: None,
 		identity_number: Some("1234567890123456".into()),
@@ -385,12 +417,12 @@ async fn test_update_user_should_fail_if_user_not_found() {
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
 	let update_payload = UsersUpdateRequestDto {
-		fullname: "Does Not Exist".into(),
-		email: "nonexistent@test.com".into(),
-		student_type: "general".into(),
-		phone_number: "081234567890".into(),
-		role_id,
-		is_active: true,
+		fullname: Some("Does Not Exist".into()),
+		email: Some("nonexistent@test.com".into()),
+		student_type: Some("POLRI".into()),
+		phone_number: Some("081234567890".into()),
+		role_id: Some(role_id),
+		is_active: Some(true),
 		referral_code: None,
 		referred_by: None,
 		identity_number: Some("1234567890123456".into()),
@@ -573,12 +605,12 @@ async fn test_update_user_should_fail_if_user_is_deleted() {
 	let user_id = user.id.id.to_raw();
 	let _ = repo.query_delete_user(user_id.clone()).await.unwrap();
 	let update_payload = UsersUpdateRequestDto {
-		role_id: role_id.clone(),
-		fullname: "Should Fail".into(),
-		email: "deleteduser@test.com".into(),
-		student_type: "general".into(),
-		phone_number: "081234567890".into(),
-		is_active: true,
+		role_id: Some(role_id.clone()),
+		fullname: Some("Should Fail".into()),
+		email: Some("deleteduser@test.com".into()),
+		student_type: Some("general".into()),
+		phone_number: Some("081234567890".into()),
+		is_active: Some(true),
 		referral_code: None,
 		referred_by: None,
 		identity_number: Some("1234567890123456".into()),
@@ -625,13 +657,13 @@ async fn test_update_user_should_fail_if_payload_invalid() {
 	let user = repo.query_user_by_email(payload.email).await.unwrap();
 	let user_id = user.id.id.to_raw();
 	let update_payload = UsersUpdateRequestDto {
-		fullname: "".into(),
-		email: "invalid@test.com".into(),
-		student_type: "general".into(),
-		phone_number: "081234567890".into(),
-		is_active: true,
+		fullname: Some("".into()),
+		email: Some("invalid@test.com".into()),
+		student_type: Some("general".into()),
+		phone_number: Some("081234567890".into()),
+		is_active: Some(true),
 		referral_code: None,
-		role_id: role_id.clone(),
+		role_id: Some(role_id.clone()),
 		referred_by: None,
 		identity_number: Some("1234567890123456".into()),
 		religion: Some("Islam".into()),
