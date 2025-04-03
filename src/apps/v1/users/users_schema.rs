@@ -4,6 +4,7 @@ use surrealdb::{
 	sql::{Id, Thing},
 	Uuid,
 };
+use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UsersSchema {
@@ -62,6 +63,12 @@ impl Default for UsersSchema {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UsersSetNewPasswordSchema {
+	pub password: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct UsersChangePasswordSchema {
+	pub old_password: String,
 	pub password: String,
 }
 

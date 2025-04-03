@@ -1,7 +1,7 @@
 use crate::{
 	common_response, extract_email, get_iso_date, hash_password, make_thing,
-	success_list_response, success_response, validate_request, ResourceEnum,
-	ResponseSuccessDto,
+	success_list_response, success_response, validate_request, verify_password,
+	ResourceEnum, ResponseSuccessDto,
 };
 use crate::{
 	AppState, MetaRequestDto, ResponseListSuccessDto, UsersActiveInactiveSchema,
@@ -11,8 +11,8 @@ use axum::http::HeaderMap;
 use axum::{http::StatusCode, response::Response};
 
 use super::{
-	UsersActiveInactiveRequestDto, UsersCreateRequestDto, UsersDetailItemDto,
-	UsersUpdateRequestDto,
+	UsersActiveInactiveRequestDto, UsersChangePasswordSchema, UsersCreateRequestDto,
+	UsersDetailItemDto, UsersUpdateRequestDto,
 };
 
 pub struct UsersService;
@@ -236,6 +236,53 @@ impl UsersService {
 	) -> Response {
 		let repo = UsersRepository::new(state);
 		match repo.query_update_password_user(email, new_password).await {
+			Ok(msg) => common_response(StatusCode::OK, &msg),
+			Err(e) => common_response(StatusCode::BAD_REQUEST, &e.to_string()),
+		}
+	}
+
+	pub async fn update_change_password(
+		state: &AppState,
+		headers: HeaderMap,
+		payload: UsersChangePasswordSchema,
+	) -> Response {
+		let repo = UsersRepository::new(state);
+		let email = extract_email(&headers).unwrap();
+		let existing_user = match repo.query_user_by_email(email.clone()).await {
+			Ok(user) => user,
+			Err(e) => return common_response(StatusCode::NOT_FOUND, &e.to_string()),
+		};
+		let old_password_valid =
+			match verify_password(&payload.old_password, &existing_user.password) {
+				Ok(valid) => valid,
+				Err(_) => {
+					return common_response(
+						StatusCode::BAD_REQUEST,
+						"Invalid current password",
+					)
+				}
+			};
+		if !old_password_valid {
+			return common_response(
+				StatusCode::BAD_REQUEST,
+				"Current password does not match",
+			);
+		}
+		if payload.password.len() < 8 {
+			return common_response(
+				StatusCode::BAD_REQUEST,
+				"New password must be at least 8 characters",
+			);
+		}
+		match repo
+			.query_update_password_user(
+				email,
+				UsersSetNewPasswordSchema {
+					password: payload.password,
+				},
+			)
+			.await
+		{
 			Ok(msg) => common_response(StatusCode::OK, &msg),
 			Err(e) => common_response(StatusCode::BAD_REQUEST, &e.to_string()),
 		}

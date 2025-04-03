@@ -5,8 +5,8 @@ use axum::{Extension, Json};
 
 use crate::{
 	permissions_guard, MessageResponseDto, PermissionsEnum, ResponseListSuccessDto,
-	ResponseSuccessDto, UsersActiveInactiveRequestDto, UsersCreateRequestDto,
-	UsersDetailItemDto,
+	ResponseSuccessDto, UsersActiveInactiveRequestDto, UsersChangePasswordSchema,
+	UsersCreateRequestDto, UsersDetailItemDto,
 };
 use crate::{v1::users_service::UsersService, AppState, MetaRequestDto};
 
@@ -237,6 +237,33 @@ pub async fn delete_user(
 	.await
 	{
 		Ok(_) => UsersService::delete_user(&state, id).await,
+		Err(response) => response,
+	}
+}
+
+#[utoipa::path(
+    put,
+    path = "/v1/users/change-password",
+    request_body = UsersChangePasswordSchema,
+    responses(
+        (status = 201, description = "Change password request successful", body = MessageResponseDto),
+        (status = 401, description = "Change password request failed", body = MessageResponseDto)
+    ),
+    tag = "Authentication"
+)]
+pub async fn put_change_password(
+	headers: HeaderMap,
+	Extension(state): Extension<AppState>,
+	Json(payload): Json<UsersChangePasswordSchema>,
+) -> impl IntoResponse {
+	match permissions_guard(
+		&headers,
+		state.clone(),
+		vec![PermissionsEnum::UpdateUsers],
+	)
+	.await
+	{
+		Ok(_) => UsersService::update_change_password(&state, headers, payload).await,
 		Err(response) => response,
 	}
 }

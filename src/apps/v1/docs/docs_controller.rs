@@ -27,6 +27,7 @@ use utoipa::{
      users::users_controller::get_user_by_id,
      users::users_controller::get_user_me,
      users::users_controller::get_user_list,
+     users::users_controller::put_change_password,
      roles::roles_controller::get_role_list,
      roles::roles_controller::get_role_by_id,
      roles::roles_controller::post_create_role,
@@ -83,7 +84,18 @@ use utoipa::{
     ),
     modifiers(&SecurityAddon),
     tags(
-        (name = "Authentication", description = "List of Authentication Endpoints"),
+        (
+            name = "Authentication", description = "List of Authentication Endpoints",
+        ),
+        (
+            name = "Users", description = "List of Users Endpoints",
+        ),
+        (
+            name = "Roles", description = "List of Roles Endpoints",
+        ),
+        (
+            name = "Permissions", description = "List of Permissions Endpoints"
+        ),
     )
 )]
 
