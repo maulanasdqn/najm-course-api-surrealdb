@@ -3,9 +3,9 @@ use super::{
 	UsersListItemDtoRaw, UsersSchema, UsersSetNewPasswordSchema,
 };
 use crate::{
-	extract_id, get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto,
-	PermissionsItemDto, PermissionsItemDtoRaw, ResourceEnum, ResponseListSuccessDto,
-	RolesItemDto, RolesItemDtoRaw,
+	extract_id, get_id, get_iso_date, make_thing, query_list_with_meta, AppState,
+	MetaRequestDto, PermissionsItemDto, PermissionsItemDtoRaw, ResourceEnum,
+	ResponseListSuccessDto, RolesItemDto, RolesItemDtoRaw,
 };
 use anyhow::{anyhow, bail, Result};
 
@@ -254,11 +254,44 @@ impl<'a> UsersRepository<'a> {
 			bail!("User already deleted");
 		}
 		let merged = UsersSchema {
-			password: existing.password,
-			created_at: existing.created_at,
-			role: make_thing("app_roles", &existing.role.id),
-			..data.clone()
+			id: make_thing("app_users", &existing.id),
+			fullname: if data.fullname.is_empty() {
+				existing.fullname
+			} else {
+				data.fullname
+			},
+			email: if data.email.is_empty() {
+				existing.email
+			} else {
+				data.email
+			},
+			phone_number: if data.phone_number.is_empty() {
+				existing.phone_number
+			} else {
+				data.phone_number
+			},
+			referral_code: data.referral_code.or(existing.referral_code),
+			referred_by: data.referred_by.or(existing.referred_by),
+			identity_number: data.identity_number.or(existing.identity_number),
+			student_type: if data.student_type.is_empty() {
+				existing.student_type
+			} else {
+				data.student_type
+			},
+			religion: data.religion.or(existing.religion),
+			gender: data.gender.or(existing.gender),
+			birthdate: data.birthdate.or(existing.birthdate),
+			avatar: data.avatar.or(existing.avatar),
+			is_profile_completed: data.is_profile_completed,
+			role: if data.role.id.to_raw().is_empty() {
+				make_thing("app_roles", &existing.role.id)
+			} else {
+				data.role.clone()
+			},
+			updated_at: get_iso_date(),
+			..data
 		};
+
 		let record: Option<UsersSchema> = db.update(record_key).merge(merged).await?;
 		match record {
 			Some(_) => Ok("Success update user".into()),

@@ -131,16 +131,11 @@ impl UsersService {
 		id: String,
 		user: UsersUpdateRequestDto,
 	) -> Response {
+		let user_data = user.clone();
 		let repo = UsersRepository::new(state);
 		let existing_user = repo.query_user_by_id(id.clone()).await.unwrap();
-
-		if let Err((status, message)) = validate_request(&user) {
-			return common_response(status, &message);
-		}
-
 		let user_id = make_thing(&ResourceEnum::Users.to_string(), &id);
 		let role_id = make_thing(&ResourceEnum::Roles.to_string(), "");
-
 		let updated_user = UsersSchema {
 			id: user_id,
 			fullname: user.fullname.unwrap_or(existing_user.fullname),
@@ -155,12 +150,16 @@ impl UsersService {
 			gender: user.gender,
 			birthdate: user.birthdate,
 			avatar: user.avatar,
-			is_profile_completed: false,
+			is_profile_completed: true,
 			role: role_id,
 			updated_at: get_iso_date(),
-			..Default::default()
+			password: existing_user.password,
+			created_at: existing_user.created_at,
+			is_deleted: existing_user.is_deleted,
 		};
-
+		if let Err((status, message)) = validate_request(&user_data.clone()) {
+			return common_response(status, &message);
+		}
 		match repo.query_update_user(updated_user).await {
 			Ok(msg) => common_response(StatusCode::OK, &msg),
 			Err(e) => common_response(StatusCode::BAD_REQUEST, &e.to_string()),
@@ -176,9 +175,6 @@ impl UsersService {
 		let email = extract_email(&headers).unwrap();
 		let existing_user = repo.query_user_by_email(email.clone()).await.unwrap();
 		let user_data = repo.query_user_by_email(email).await.unwrap();
-		if let Err((status, message)) = validate_request(&user) {
-			return common_response(status, &message);
-		}
 		let user_id =
 			make_thing(&ResourceEnum::Users.to_string(), &user_data.id.id.to_raw());
 		let role_id = make_thing(&ResourceEnum::Roles.to_string(), "");
@@ -199,7 +195,9 @@ impl UsersService {
 			is_profile_completed: true,
 			role: role_id,
 			updated_at: get_iso_date(),
-			..Default::default()
+			password: existing_user.password,
+			created_at: existing_user.created_at,
+			is_deleted: existing_user.is_deleted,
 		};
 		match repo.query_update_user(updated_user).await {
 			Ok(msg) => common_response(StatusCode::OK, &msg),
