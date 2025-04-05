@@ -1,4 +1,4 @@
-use najm_course_api::{apps, axum_init};
+use najm_course_apis::{apps, axum_init};
 
 #[tokio::main]
 async fn main() {

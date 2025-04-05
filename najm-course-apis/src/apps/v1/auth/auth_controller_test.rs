@@ -1,11 +1,40 @@
 use crate::{
-	apps::v1::auth::auth_router, create_mock_app_state, create_test_user,
-	encode_refresh_token, AuthOtpSchema, OtpManager, ResourceEnum, RolesRepository,
+	auth_router, create_mock_app_state, encode_refresh_token,
+	encode_reset_password_token, hash_password, make_thing, AuthOtpSchema, OtpManager,
+	ResourceEnum, RolesRepository, UsersSchema,
 };
 use axum::{http::StatusCode, Extension};
 use axum_test::TestServer;
 use serde_json::json;
 use surrealdb::Uuid;
+
+pub fn create_test_user(
+	email: &str,
+	fullname: &str,
+	is_active: bool,
+	role_id: &str,
+) -> UsersSchema {
+	UsersSchema {
+		id: make_thing("app_users", &Uuid::new_v4().to_string()),
+		email: email.to_string(),
+		fullname: format!("Randomize {} {}", fullname, rand::random::<u32>()),
+		password: hash_password("secret").unwrap(),
+		is_deleted: false,
+		avatar: None,
+		phone_number: "081234567890".to_string(),
+		referral_code: None,
+		referred_by: None,
+		identity_number: None,
+		is_active,
+		student_type: "TNI".to_string(),
+		religion: None,
+		gender: None,
+		birthdate: None,
+		is_profile_completed: false,
+		role: make_thing("app_roles", role_id),
+		..Default::default()
+	}
+}
 
 #[tokio::test]
 async fn test_login_should_fail_with_invalid_user() {
@@ -39,7 +68,7 @@ async fn test_login_should_fail_with_wrong_password() {
 		.unwrap()
 		.id;
 	let mut user = create_test_user("user@example.com", "User Satu", true, &role_id);
-	user.password = crate::hash_password("correctpassword").unwrap();
+	user.password = hash_password("correctpassword").unwrap();
 	repo.query_create_user(user).await.unwrap();
 	let payload = json!({
 		"email": "user@example.com",
@@ -71,7 +100,7 @@ async fn test_login_should_fail_if_user_not_active() {
 		false,
 		&role_id,
 	);
-	user.password = crate::hash_password("secret").unwrap();
+	user.password = hash_password("secret").unwrap();
 	repo.query_create_user(user).await.unwrap();
 	let payload = json!({
 		"email": "inactive-again@example.com",
@@ -100,7 +129,7 @@ async fn test_login_should_succeed() {
 		.id;
 	let mut user =
 		create_test_user("active@example.com", "Active User", true, &role_id);
-	user.password = crate::hash_password("secret").unwrap();
+	user.password = hash_password("secret").unwrap();
 	repo.query_create_user(user).await.unwrap();
 	let payload = json!({
 		"email": "active@example.com",
@@ -192,7 +221,7 @@ async fn test_register_should_fail_if_email_already_taken() {
 		.id;
 	let mut user =
 		create_test_user("duplicate@example.com", "User Exists", false, &role_id);
-	user.password = crate::hash_password("secret").unwrap();
+	user.password = hash_password("secret").unwrap();
 	repo.query_create_user(user).await.unwrap();
 	let payload = json!({
 		"fullname": "User Exists",
@@ -352,7 +381,7 @@ async fn test_forgot_password_should_succeed() {
 		.id;
 	let mut user =
 		create_test_user("forgot@example.com", "Forgot User", true, &role_id);
-	user.password = crate::hash_password("secret").unwrap();
+	user.password = hash_password("secret").unwrap();
 	let user_repo = crate::apps::v1::users::UsersRepository::new(&state);
 	user_repo.query_create_user(user).await.unwrap();
 	let payload = json!({ "email": "forgot@example.com" });
@@ -584,9 +613,9 @@ async fn test_new_password_should_succeed() {
 		.unwrap()
 		.id;
 	let mut user = create_test_user(email, "Reset User", true, &role_id);
-	user.password = crate::hash_password("oldpass123!").unwrap();
+	user.password = hash_password("oldpass123!").unwrap();
 	repo.query_create_user(user).await.unwrap();
-	let token = crate::encode_reset_password_token(email.to_string()).unwrap();
+	let token = encode_reset_password_token(email.to_string()).unwrap();
 	let payload = json!({
 		"token": token,
 		"password": "Newpass123!"
@@ -629,7 +658,7 @@ async fn test_new_password_should_fail_if_password_is_weak() {
 	)
 	.unwrap();
 	let email = "weakpass@example.com";
-	let token = crate::encode_reset_password_token(email.to_string()).unwrap();
+	let token = encode_reset_password_token(email.to_string()).unwrap();
 	let payload = json!({
 		"token": token,
 		"password": "123"
@@ -653,8 +682,7 @@ async fn test_new_password_should_fail_if_user_not_found() {
 			.layer(Extension(state)),
 	)
 	.unwrap();
-	let token =
-		crate::encode_reset_password_token("ghost@example.com".into()).unwrap();
+	let token = encode_reset_password_token("ghost@example.com".into()).unwrap();
 	let payload = json!({
 		"token": token,
 		"password": "Validpass123!"

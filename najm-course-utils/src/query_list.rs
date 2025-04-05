@@ -1,8 +1,10 @@
 use super::bind_filter_value;
-use crate::{CountResult, MetaRequestDto, MetaResponseDto, ResponseListSuccessDto};
-use anyhow::{bail, Result};
-use serde::{de::DeserializeOwned, Serialize};
-use surrealdb::{engine::remote::ws::Client, Surreal};
+use anyhow::{Result, bail};
+use najm_course_entities::{
+	CountResult, MetaRequestDto, MetaResponseDto, ResponseListSuccessDto,
+};
+use serde::{Serialize, de::DeserializeOwned};
+use surrealdb::{Surreal, engine::remote::ws::Client};
 
 pub async fn query_list_with_meta<T>(
 	db: &Surreal<Client>,

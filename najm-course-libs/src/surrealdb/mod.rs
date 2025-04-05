@@ -1,5 +1,5 @@
 use super::Env;
-use crate::{SurrealMemClient, SurrealWsClient};
+use najm_course_entities::{SurrealMemClient, SurrealWsClient};
 use surrealdb::engine::local::Mem;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::opt::auth::Root;

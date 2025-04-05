@@ -1,7 +1,6 @@
-use crate::{
-	surrealdb_init_mem, surrealdb_init_ws, Env, SurrealMemClient, SurrealWsClient,
-};
-use axum::{serve, Router};
+use crate::{Env, surrealdb_init_mem, surrealdb_init_ws};
+use axum::{Router, serve};
+use najm_course_entities::{SurrealMemClient, SurrealWsClient};
 use std::{future::Future, net::SocketAddr};
 use tokio::net::TcpListener;
 

@@ -1,4 +1,4 @@
-use najm_course_api::{get_iso_date, hash_password, Env};
+use najm_course_apis::{get_iso_date, hash_password, Env};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use surrealdb::{engine::remote::ws::Ws, opt::auth::Root, sql::Thing, Surreal};

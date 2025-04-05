@@ -1,0 +1,17 @@
+[package]
+name = "najm-course-utils"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+najm-course-libs = { path = "../najm-course-libs"}
+najm-course-entities = { path = "../najm-course-entities" }
+surrealdb.workspace = true
+axum.workspace = true
+chrono.workspace = true
+rand.workspace = true
+anyhow.workspace = true
+axum-test.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+validator.workspace = true

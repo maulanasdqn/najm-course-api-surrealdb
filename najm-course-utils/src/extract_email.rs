@@ -1,5 +1,5 @@
-use crate::decode_access_token;
-use axum::http::{header::AUTHORIZATION, HeaderMap};
+use axum::http::{HeaderMap, header::AUTHORIZATION};
+use najm_course_libs::decode_access_token;
 
 pub fn extract_email(headers: &HeaderMap) -> Option<String> {
 	println!("📥 Received headers: {:?}", headers);

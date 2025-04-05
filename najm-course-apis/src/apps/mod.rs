@@ -25,13 +25,9 @@ pub async fn apps(
 	let cors_origins = match env.rust_env.as_str() {
 		"development" => vec!["http://localhost:3000"],
 		"production" => {
-			vec!["https://gacha.imphnen.dev", "https://imphnen.dev"]
+			vec!["https://cat.najmcourse.com"]
 		}
-		_ => vec![
-			"http://localhost:3000",
-			"https://gacha.imphnen.dev",
-			"https://imphnen.dev",
-		],
+		_ => vec!["http://localhost:3000", "https://cat.najmcourse.com"],
 	};
 
 	let allowed_origins: Vec<HeaderValue> = cors_origins

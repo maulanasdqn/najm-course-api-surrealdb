@@ -1,4 +1,5 @@
-use crate::{create_mock_app_state, create_test_user, RolesRepository};
+use crate::auth_controller_test::create_test_user;
+use crate::{create_mock_app_state, RolesRepository};
 use crate::{
 	MetaRequestDto, UsersActiveInactiveSchema, UsersRepository,
 	UsersSetNewPasswordSchema,

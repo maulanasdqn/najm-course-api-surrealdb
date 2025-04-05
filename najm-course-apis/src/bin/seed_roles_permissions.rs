@@ -1,4 +1,4 @@
-use najm_course_api::{get_iso_date, make_thing, Env};
+use najm_course_apis::{get_iso_date, make_thing, Env};
 use std::error::Error;
 use surrealdb::{engine::remote::ws::Ws, opt::auth::Root, Surreal};
 
