@@ -1,9 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "najm-course-apis", "najm-course-entities",
-  "najm-course-libs",
-  "najm-course-utils",
+  "najm-course-*",
 ]
 
 [workspace.dependencies]
