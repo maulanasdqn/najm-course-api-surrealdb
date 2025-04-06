@@ -4,13 +4,13 @@ use std::fmt;
 pub enum ResourceEnum {
 	OtpCache,
 	UsersCache,
-	GachaItems,
-	GachaClaims,
-	GachaRolls,
+	Tests,
+	Sessions,
+	Options,
+	Questions,
 	Users,
 	Roles,
 	Permissions,
-	RolesPermissions,
 }
 
 impl fmt::Display for ResourceEnum {
@@ -21,10 +21,10 @@ impl fmt::Display for ResourceEnum {
 			ResourceEnum::OtpCache => "app_otp_cache",
 			ResourceEnum::Roles => "app_roles",
 			ResourceEnum::Permissions => "app_permissions",
-			ResourceEnum::RolesPermissions => "app_roles_permissions",
-			ResourceEnum::GachaItems => "app_gacha_items",
-			ResourceEnum::GachaClaims => "app_gacha_claims",
-			ResourceEnum::GachaRolls => "app_gacha_rolls",
+			ResourceEnum::Options => "app_options",
+			ResourceEnum::Questions => "app_questions",
+			ResourceEnum::Tests => "app_tests",
+			ResourceEnum::Sessions => "app_sessions",
 		};
 		write!(f, "{}", str)
 	}
