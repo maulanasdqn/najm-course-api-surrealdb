@@ -1,11 +1,11 @@
 use super::QuestionsSchema;
+use crate::{OptionsCreateRequestDto, OptionsItemDto, OptionsUpdateRequestDto};
 use serde::{Deserialize, Serialize};
-use surrealdb::sql::Thing;
 use utoipa::ToSchema;
 use validator::Validate;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
-pub struct QuestionsRequestDto {
+pub struct QuestionsCreateRequestDto {
 	#[validate(length(min = 1, message = "Question must not be empty"))]
 	pub question: String,
 
@@ -13,12 +13,24 @@ pub struct QuestionsRequestDto {
 	pub discussion: String,
 
 	pub question_image_url: Option<String>,
+	pub discussion_image_url: Option<String>,
 
-	#[validate(length(min = 1, message = "Discussion image URL must not be empty"))]
-	pub discussion_image_url: String,
+	pub options: Vec<OptionsCreateRequestDto>,
+}
 
-	#[validate(length(min = 1, message = "Options must contain at least 1 ID"))]
-	pub options: Vec<String>,
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
+pub struct QuestionsUpdateRequestDto {
+	pub id: String,
+	#[validate(length(min = 1, message = "Question must not be empty"))]
+	pub question: String,
+
+	#[validate(length(min = 1, message = "Discussion must not be empty"))]
+	pub discussion: String,
+
+	pub question_image_url: Option<String>,
+	pub discussion_image_url: Option<String>,
+
+	pub options: Vec<OptionsUpdateRequestDto>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -27,8 +39,8 @@ pub struct QuestionsItemDto {
 	pub question: String,
 	pub discussion: String,
 	pub question_image_url: Option<String>,
-	pub discussion_image_url: String,
-	pub options: Vec<String>,
+	pub discussion_image_url: Option<String>,
+	pub options: Vec<OptionsItemDto>,
 	pub created_at: String,
 	pub updated_at: String,
 }
@@ -58,22 +70,16 @@ impl From<QuestionsSchema> for QuestionsResponseListDto {
 	}
 }
 
-impl From<QuestionsSchema> for QuestionsItemDto {
-	fn from(value: QuestionsSchema) -> Self {
+impl QuestionsItemDto {
+	pub fn from_with_options(
+		value: QuestionsSchema,
+		options: Vec<OptionsItemDto>,
+	) -> Self {
 		let id = match &value.id.id {
 			surrealdb::sql::Id::String(s) => s.clone(),
 			_ => "".to_string(),
 		};
-		let options = value
-			.options
-			.into_iter()
-			.map(|thing: Thing| match thing.id {
-				surrealdb::sql::Id::String(s) => s,
-				_ => "".to_string(),
-			})
-			.collect();
-
-		QuestionsItemDto {
+		Self {
 			id,
 			question: value.question,
 			discussion: value.discussion,

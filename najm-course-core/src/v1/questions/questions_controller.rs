@@ -5,7 +5,8 @@ use axum::{
 };
 
 use super::{
-	QuestionsItemDto, QuestionsRequestDto, QuestionsResponseListDto, QuestionsService,
+	QuestionsCreateRequestDto, QuestionsItemDto, QuestionsResponseListDto,
+	QuestionsService, QuestionsUpdateRequestDto,
 };
 use crate::{
 	permissions_guard, AppState, MessageResponseDto, MetaRequestDto, PermissionsEnum,
@@ -84,7 +85,7 @@ pub async fn get_question_by_id(
 		("Bearer" = [])
 	),
 	path = "/v1/questions/create",
-	request_body = QuestionsRequestDto,
+	request_body = QuestionsCreateRequestDto,
 	responses(
 		(status = 201, description = "Create new question", body = MessageResponseDto)
 	),
@@ -93,7 +94,7 @@ pub async fn get_question_by_id(
 pub async fn post_create_question(
 	headers: axum::http::HeaderMap,
 	Extension(state): Extension<AppState>,
-	Json(payload): Json<QuestionsRequestDto>,
+	Json(payload): Json<QuestionsCreateRequestDto>,
 ) -> impl IntoResponse {
 	match permissions_guard(
 		&headers,
@@ -113,7 +114,7 @@ pub async fn post_create_question(
 		("Bearer" = [])
 	),
 	path = "/v1/questions/update/{id}",
-	request_body = QuestionsRequestDto,
+	request_body = QuestionsUpdateRequestDto,
 	responses(
 		(status = 200, description = "Update question", body = MessageResponseDto)
 	),
@@ -123,7 +124,7 @@ pub async fn put_update_question(
 	headers: axum::http::HeaderMap,
 	Extension(state): Extension<AppState>,
 	Path(id): Path<String>,
-	Json(payload): Json<QuestionsRequestDto>,
+	Json(payload): Json<QuestionsUpdateRequestDto>,
 ) -> impl IntoResponse {
 	match permissions_guard(
 		&headers,

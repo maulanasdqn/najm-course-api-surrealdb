@@ -4,7 +4,10 @@ use axum::{
 	Extension, Json,
 };
 
-use super::{TestsItemDto, TestsRequestDto, TestsResponseListDto, TestsService};
+use super::{
+	TestsCreateRequestDto, TestsItemDto, TestsResponseListDto, TestsService,
+	TestsUpdateRequestDto,
+};
 use crate::{
 	permissions_guard, AppState, MessageResponseDto, MetaRequestDto, PermissionsEnum,
 	ResponseListSuccessDto, ResponseSuccessDto,
@@ -76,7 +79,7 @@ pub async fn get_test_by_id(
 	post,
 	security(("Bearer" = [])),
 	path = "/v1/tests/create",
-	request_body = TestsRequestDto,
+	request_body = TestsCreateRequestDto,
 	responses(
 		(status = 201, description = "Create new test", body = MessageResponseDto)
 	),
@@ -85,7 +88,7 @@ pub async fn get_test_by_id(
 pub async fn post_create_test(
 	headers: axum::http::HeaderMap,
 	Extension(state): Extension<AppState>,
-	Json(payload): Json<TestsRequestDto>,
+	Json(payload): Json<TestsCreateRequestDto>,
 ) -> impl IntoResponse {
 	match permissions_guard(
 		&headers,
@@ -103,7 +106,7 @@ pub async fn post_create_test(
 	put,
 	security(("Bearer" = [])),
 	path = "/v1/tests/update/{id}",
-	request_body = TestsRequestDto,
+	request_body = TestsUpdateRequestDto,
 	responses(
 		(status = 200, description = "Update test", body = MessageResponseDto)
 	),
@@ -113,7 +116,7 @@ pub async fn put_update_test(
 	headers: axum::http::HeaderMap,
 	Extension(state): Extension<AppState>,
 	Path(id): Path<String>,
-	Json(payload): Json<TestsRequestDto>,
+	Json(payload): Json<TestsUpdateRequestDto>,
 ) -> impl IntoResponse {
 	match permissions_guard(
 		&headers,

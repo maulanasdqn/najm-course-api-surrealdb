@@ -5,7 +5,16 @@ use validator::Validate;
 use super::OptionsSchema;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
-pub struct OptionsRequestDto {
+pub struct OptionsCreateRequestDto {
+	#[validate(length(min = 1, message = "Label must not be empty"))]
+	pub label: String,
+	pub image_url: Option<String>,
+	pub is_correct: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
+pub struct OptionsUpdateRequestDto {
+	pub id: String,
 	#[validate(length(min = 1, message = "Label must not be empty"))]
 	pub label: String,
 	pub image_url: Option<String>,

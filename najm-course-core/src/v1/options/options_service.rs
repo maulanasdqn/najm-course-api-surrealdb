@@ -1,4 +1,4 @@
-use super::{OptionsRepository, OptionsRequestDto};
+use super::{OptionsCreateRequestDto, OptionsRepository, OptionsUpdateRequestDto};
 use crate::{
 	common_response, success_list_response, success_response, validate_request,
 	AppState, MetaRequestDto, ResponseListSuccessDto, ResponseSuccessDto,
@@ -32,7 +32,7 @@ impl OptionsService {
 
 	pub async fn create_option(
 		state: &AppState,
-		payload: OptionsRequestDto,
+		payload: OptionsCreateRequestDto,
 	) -> Response {
 		if let Err((status, message)) = validate_request(&payload) {
 			return common_response(status, &message);
@@ -47,7 +47,7 @@ impl OptionsService {
 	pub async fn update_option(
 		state: &AppState,
 		id: String,
-		payload: OptionsRequestDto,
+		payload: OptionsUpdateRequestDto,
 	) -> Response {
 		if let Err((status, message)) = validate_request(&payload) {
 			return common_response(status, &message);

@@ -1,15 +1,14 @@
 use crate::{
-	apps::v1::{
-		permissions::{
-			permissions_repository::PermissionsRepository,
-			permissions_schema::PermissionsSchema,
-		},
-		roles::{
-			roles_dto::{RolesRequestCreateDto, RolesRequestUpdateDto},
-			roles_repository::RolesRepository,
-		},
+	create_mock_app_state, get_iso_date, make_thing,
+	permissions::{
+		permissions_repository::PermissionsRepository,
+		permissions_schema::PermissionsSchema,
 	},
-	create_mock_app_state, get_iso_date, make_thing, ResourceEnum,
+	roles::{
+		roles_dto::{RolesRequestCreateDto, RolesRequestUpdateDto},
+		roles_repository::RolesRepository,
+	},
+	ResourceEnum,
 };
 use surrealdb::sql::Thing;
 use surrealdb::Uuid;

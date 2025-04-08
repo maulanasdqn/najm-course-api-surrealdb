@@ -1,5 +1,6 @@
 use super::{
-	OptionsItemDto, OptionsRequestDto, OptionsResponseListDto, OptionsService,
+	OptionsCreateRequestDto, OptionsItemDto, OptionsResponseListDto, OptionsService,
+	OptionsUpdateRequestDto,
 };
 use crate::{
 	permissions_guard, AppState, MessageResponseDto, MetaRequestDto, PermissionsEnum,
@@ -83,7 +84,7 @@ pub async fn get_option_by_id(
 		("Bearer" = [])
 	),
 	path = "/v1/options/create",
-	request_body = OptionsRequestDto,
+	request_body = OptionsCreateRequestDto,
 	responses(
 		(status = 201, description = "Create new option", body = MessageResponseDto)
 	),
@@ -92,7 +93,7 @@ pub async fn get_option_by_id(
 pub async fn post_create_option(
 	headers: axum::http::HeaderMap,
 	Extension(state): Extension<AppState>,
-	Json(payload): Json<OptionsRequestDto>,
+	Json(payload): Json<OptionsCreateRequestDto>,
 ) -> impl IntoResponse {
 	match permissions_guard(
 		&headers,
@@ -112,7 +113,7 @@ pub async fn post_create_option(
 		("Bearer" = [])
 	),
 	path = "/v1/options/update/{id}",
-	request_body = OptionsRequestDto,
+	request_body = OptionsUpdateRequestDto,
 	responses(
 		(status = 200, description = "Update option", body = MessageResponseDto)
 	),
@@ -122,7 +123,7 @@ pub async fn put_update_option(
 	headers: axum::http::HeaderMap,
 	Extension(state): Extension<AppState>,
 	Path(id): Path<String>,
-	Json(payload): Json<OptionsRequestDto>,
+	Json(payload): Json<OptionsUpdateRequestDto>,
 ) -> impl IntoResponse {
 	match permissions_guard(
 		&headers,

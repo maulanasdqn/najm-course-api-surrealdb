@@ -1,8 +1,10 @@
 use super::{
-	QuestionsItemDto, QuestionsRequestDto, QuestionsResponseListDto, QuestionsSchema,
+	QuestionsCreateRequestDto, QuestionsItemDto, QuestionsResponseListDto,
+	QuestionsSchema, QuestionsUpdateRequestDto,
 };
 use crate::{
-	get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto, ResourceEnum,
+	get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto,
+	OptionsItemDto, OptionsRepository, OptionsSchema, ResourceEnum,
 	ResponseListSuccessDto,
 };
 use anyhow::{bail, Result};
@@ -72,26 +74,60 @@ impl<'a> QuestionsRepository<'a> {
 			Some(q) if !q.is_deleted => q,
 			_ => bail!("Question not found"),
 		};
-		Ok(QuestionsItemDto::from(question))
+		let options_repo = OptionsRepository::new(self.state);
+		let mut option_items = Vec::new();
+		for thing in &question.options {
+			if let Ok(opt) = options_repo
+				.query_raw_option_by_id(&thing.id.to_string())
+				.await
+			{
+				option_items.push(OptionsItemDto {
+					id: match &opt.id.id {
+						surrealdb::sql::Id::String(s) => s.clone(),
+						_ => "".to_string(),
+					},
+					label: opt.label,
+					image_url: opt.image_url,
+					created_at: opt.created_at,
+					updated_at: opt.updated_at,
+				});
+			}
+		}
+		Ok(QuestionsItemDto::from_with_options(question, option_items))
 	}
 
 	pub async fn query_create_question(
 		&self,
-		payload: QuestionsRequestDto,
+		payload: QuestionsCreateRequestDto,
 	) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
 		let question_id = Uuid::new_v4().to_string();
+		let mut option_things = Vec::new();
+		for option in &payload.options {
+			let option_id = Uuid::new_v4().to_string();
+			let option_thing = make_thing("app_options", &option_id);
+			let option_schema = OptionsSchema {
+				id: option_thing.clone(),
+				label: option.label.clone(),
+				image_url: option.image_url.clone(),
+				is_correct: option.is_correct,
+				is_deleted: false,
+				created_at: get_iso_date(),
+				updated_at: get_iso_date(),
+			};
+			let _: Option<OptionsSchema> = db
+				.create(("app_options", option_id))
+				.content(option_schema)
+				.await?;
+			option_things.push(option_thing);
+		}
 		let question = QuestionsSchema {
 			id: make_thing(&ResourceEnum::Questions.to_string(), &question_id),
 			question: payload.question,
 			discussion: payload.discussion,
 			question_image_url: payload.question_image_url,
 			discussion_image_url: payload.discussion_image_url,
-			options: payload
-				.options
-				.iter()
-				.map(|id| make_thing("app_options", id))
-				.collect(),
+			options: option_things,
 			is_deleted: false,
 			created_at: get_iso_date(),
 			updated_at: get_iso_date(),
@@ -106,25 +142,41 @@ impl<'a> QuestionsRepository<'a> {
 	pub async fn query_update_question(
 		&self,
 		id: String,
-		data: QuestionsRequestDto,
+		data: QuestionsUpdateRequestDto,
 	) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
-		let thing_id = make_thing(&ResourceEnum::Questions.to_string(), &id);
+		let question_thing_id = make_thing(&ResourceEnum::Questions.to_string(), &id);
 		let existing = self.query_raw_question_by_id(&id).await?;
 		if existing.is_deleted {
 			bail!("Question already deleted");
 		}
+		let mut option_things = Vec::new();
+		for option in &data.options {
+			let option_id = Uuid::new_v4().to_string();
+			let option_thing = make_thing("app_options", &option_id);
+			let option_schema = OptionsSchema {
+				id: option_thing.clone(),
+				label: option.label.clone(),
+				image_url: option.image_url.clone(),
+				is_correct: option.is_correct,
+				is_deleted: false,
+				created_at: get_iso_date(),
+				updated_at: get_iso_date(),
+			};
+			let _: Option<OptionsSchema> = db
+				.create(("app_options", option_id))
+				.content(option_schema)
+				.await?;
+
+			option_things.push(option_thing);
+		}
 		let merged = QuestionsSchema {
-			id: thing_id,
+			id: question_thing_id,
 			question: data.question,
 			discussion: data.discussion,
 			question_image_url: data.question_image_url,
 			discussion_image_url: data.discussion_image_url,
-			options: data
-				.options
-				.iter()
-				.map(|id| make_thing("app_options", id))
-				.collect(),
+			options: option_things,
 			is_deleted: existing.is_deleted,
 			created_at: existing.created_at,
 			updated_at: get_iso_date(),

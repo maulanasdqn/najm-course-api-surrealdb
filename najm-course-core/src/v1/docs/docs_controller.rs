@@ -1,7 +1,7 @@
 use crate::{
-	options::{OptionsItemDto, OptionsRequestDto, OptionsResponseListDto}, questions::{QuestionsItemDto, QuestionsRequestDto, QuestionsResponseListDto}, v1::{
-		auth, options, permissions, questions, roles, users, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto
-	}, AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto, MetaRequestDto, MetaResponseDto, PermissionsItemDto, PermissionsRequestDto, ResponseListSuccessDto, ResponseSuccessDto, RolesItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto, UsersCreateRequestDto, UsersDetailItemDto, UsersItemDto, UsersListItemDto, UsersUpdateRequestDto
+	options::{OptionsItemDto, OptionsCreateRequestDto, OptionsUpdateRequestDto, OptionsResponseListDto}, questions::{QuestionsItemDto, QuestionsCreateRequestDto, QuestionsResponseListDto}, tests::{TestsItemDto, TestsCreateRequestDto, TestsUpdateRequestDto, TestsResponseListDto}, v1::{
+		auth, options, permissions, questions, roles, tests, users, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto
+	}, AuthNewPasswordRequestDto, QuestionsUpdateRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto, MetaRequestDto, MetaResponseDto, PermissionsItemDto, PermissionsRequestDto, ResponseListSuccessDto, ResponseSuccessDto, RolesItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto, UsersCreateRequestDto, UsersDetailItemDto, UsersItemDto, UsersListItemDto, UsersUpdateRequestDto
 };
 use utoipa::{
 	openapi::security::{Http, HttpAuthScheme, SecurityScheme},
@@ -42,6 +42,11 @@ use utoipa::{
      questions::questions_controller::post_create_question,
      questions::questions_controller::put_update_question,
      questions::questions_controller::delete_question,
+     tests::tests_controller::get_test_list,
+     tests::tests_controller::get_test_by_id,
+     tests::tests_controller::post_create_test,
+     tests::tests_controller::put_update_test,
+     tests::tests_controller::delete_test,
      permissions::permissions_controller::get_permission_list,
      permissions::permissions_controller::get_permission_by_id,
      permissions::permissions_controller::post_create_permission,
@@ -71,10 +76,16 @@ use utoipa::{
            UsersCreateRequestDto,
            OptionsItemDto,
            OptionsResponseListDto,
-           OptionsRequestDto,
+           OptionsCreateRequestDto,
+           OptionsUpdateRequestDto,
            QuestionsItemDto,
-           QuestionsRequestDto,
+           QuestionsCreateRequestDto,
+           QuestionsUpdateRequestDto,
            QuestionsResponseListDto,
+           TestsItemDto,
+           TestsCreateRequestDto,
+           TestsUpdateRequestDto,
+           TestsResponseListDto,
            ResponseSuccessDto<AuthLoginResponsetDto>,
            ResponseListSuccessDto<Vec<RolesItemDto>>,
            ResponseSuccessDto<RolesItemDto>,
@@ -84,6 +95,8 @@ use utoipa::{
            ResponseSuccessDto<PermissionsItemDto>,
            ResponseListSuccessDto<Vec<OptionsResponseListDto>>,
            ResponseSuccessDto<OptionsItemDto>,
+           ResponseListSuccessDto<Vec<TestsResponseListDto>>,
+           ResponseSuccessDto<TestsItemDto>,
            ResponseListSuccessDto<Vec<QuestionsResponseListDto>>,
            ResponseSuccessDto<QuestionsItemDto>
         )

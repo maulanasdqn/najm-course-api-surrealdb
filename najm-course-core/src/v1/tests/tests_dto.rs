@@ -1,14 +1,23 @@
 use super::tests_schema::TestsSchema;
-use crate::questions::QuestionsItemDto;
+use crate::{
+	questions::QuestionsItemDto, QuestionsCreateRequestDto, QuestionsUpdateRequestDto,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
-pub struct TestsRequestDto {
+pub struct TestsCreateRequestDto {
 	#[validate(length(min = 1, message = "Name must not be empty"))]
 	pub name: String,
-	pub questions: Vec<QuestionsItemDto>,
+	pub questions: Vec<QuestionsCreateRequestDto>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
+pub struct TestsUpdateRequestDto {
+	#[validate(length(min = 1, message = "Name must not be empty"))]
+	pub name: String,
+	pub questions: Vec<QuestionsUpdateRequestDto>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]

@@ -1,7 +1,4 @@
-use crate::{
-	apps::v1::permissions::{PermissionsRepository, PermissionsSchema},
-	create_mock_app_state,
-};
+use crate::{create_mock_app_state, PermissionsRepository, PermissionsSchema};
 use chrono::Utc;
 
 fn create_dummy_permission(name: &str) -> PermissionsSchema {

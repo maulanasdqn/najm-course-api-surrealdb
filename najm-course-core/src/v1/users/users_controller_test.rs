@@ -1,6 +1,6 @@
 use crate::{
-	apps::v1::users_router, authorized, create_mock_app_state, PermissionsEnum,
-	RolesEnum, RolesRepository, UsersActiveInactiveRequestDto, UsersCreateRequestDto,
+	authorized, create_mock_app_state, users_router, PermissionsEnum, RolesEnum,
+	RolesRepository, UsersActiveInactiveRequestDto, UsersCreateRequestDto,
 	UsersRepository, UsersUpdateRequestDto,
 };
 use axum::{http::StatusCode, Extension};

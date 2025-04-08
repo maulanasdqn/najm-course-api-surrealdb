@@ -38,7 +38,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 	db.use_ns(env.surrealdb_namespace)
 		.use_db(env.surrealdb_dbname)
 		.await?;
-
 	let users = vec![
 		(
 			"c3b1d6a8-8d4f-4b36-b789-2e532ec7a7b2",
@@ -59,7 +58,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 			"5713cb37-dc02-4e87-8048-d7a41d352059",
 		),
 	];
-
 	for (id, email, fullname, role_id) in users {
 		let user = UsersSchema {
 			id: Thing::from(("app_users", id)),
@@ -82,14 +80,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 			created_at: get_iso_date(),
 			updated_at: get_iso_date(),
 		};
-
 		db.create::<Option<UsersSchema>>(("app_users", id))
 			.content(user)
 			.await?;
-
 		println!("✅ Inserted user: {} ({})", fullname, email);
 	}
-
 	println!("✅ Semua users berhasil disimpan ke SurrealDB!");
 	Ok(())
 }

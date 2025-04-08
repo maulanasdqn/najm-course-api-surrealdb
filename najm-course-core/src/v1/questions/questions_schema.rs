@@ -7,7 +7,7 @@ pub struct QuestionsSchema {
 	pub question: String,
 	pub discussion: String,
 	pub question_image_url: Option<String>,
-	pub discussion_image_url: String,
+	pub discussion_image_url: Option<String>,
 	pub options: Vec<Thing>,
 	pub is_deleted: bool,
 	pub created_at: String,

@@ -1,4 +1,4 @@
-use super::{TestsRepository, TestsRequestDto};
+use super::{TestsCreateRequestDto, TestsRepository, TestsUpdateRequestDto};
 use crate::{
 	common_response, success_list_response, success_response, validate_request,
 	AppState, MetaRequestDto, ResponseListSuccessDto, ResponseSuccessDto,
@@ -30,7 +30,10 @@ impl TestsService {
 		}
 	}
 
-	pub async fn create_test(state: &AppState, payload: TestsRequestDto) -> Response {
+	pub async fn create_test(
+		state: &AppState,
+		payload: TestsCreateRequestDto,
+	) -> Response {
 		if let Err((status, message)) = validate_request(&payload) {
 			return common_response(status, &message);
 		}
@@ -44,7 +47,7 @@ impl TestsService {
 	pub async fn update_test(
 		state: &AppState,
 		id: String,
-		payload: TestsRequestDto,
+		payload: TestsUpdateRequestDto,
 	) -> Response {
 		if let Err((status, message)) = validate_request(&payload) {
 			return common_response(status, &message);

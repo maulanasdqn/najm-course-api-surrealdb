@@ -1,4 +1,6 @@
-use super::{QuestionsRepository, QuestionsRequestDto};
+use super::{
+	QuestionsCreateRequestDto, QuestionsRepository, QuestionsUpdateRequestDto,
+};
 use crate::{
 	common_response, success_list_response, success_response, validate_request,
 	AppState, MetaRequestDto, ResponseListSuccessDto, ResponseSuccessDto,
@@ -35,7 +37,7 @@ impl QuestionsService {
 
 	pub async fn create_question(
 		state: &AppState,
-		payload: QuestionsRequestDto,
+		payload: QuestionsCreateRequestDto,
 	) -> Response {
 		if let Err((status, message)) = validate_request(&payload) {
 			return common_response(status, &message);
@@ -50,7 +52,7 @@ impl QuestionsService {
 	pub async fn update_question(
 		state: &AppState,
 		id: String,
-		payload: QuestionsRequestDto,
+		payload: QuestionsUpdateRequestDto,
 	) -> Response {
 		if let Err((status, message)) = validate_request(&payload) {
 			return common_response(status, &message);

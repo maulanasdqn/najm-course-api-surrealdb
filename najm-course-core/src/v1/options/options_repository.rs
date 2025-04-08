@@ -1,5 +1,6 @@
 use super::{
-	OptionsItemDto, OptionsRequestDto, OptionsResponseListDto, OptionsSchema,
+	OptionsCreateRequestDto, OptionsItemDto, OptionsResponseListDto, OptionsSchema,
+	OptionsUpdateRequestDto,
 };
 use crate::{
 	extract_id, get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto,
@@ -107,16 +108,17 @@ impl<'a> OptionsRepository<'a> {
 
 	pub async fn query_create_option(
 		&self,
-		payload: OptionsRequestDto,
+		payload: OptionsCreateRequestDto,
 	) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
 		let option_id = Uuid::new_v4().to_string();
+
 		let option = OptionsSchema {
 			id: make_thing(&ResourceEnum::Options.to_string(), &option_id),
 			label: payload.label,
-			is_deleted: false,
 			is_correct: payload.is_correct,
 			image_url: payload.image_url,
+			is_deleted: false,
 			created_at: get_iso_date(),
 			updated_at: get_iso_date(),
 		};
@@ -124,13 +126,13 @@ impl<'a> OptionsRepository<'a> {
 			.create((&ResourceEnum::Options.to_string(), option_id))
 			.content(option)
 			.await?;
-		Ok("Option created successfully".into())
+		Ok("Option created successfully".to_string()) // ✅ fix: pakai String
 	}
 
 	pub async fn query_update_option(
 		&self,
 		id: String,
-		data: OptionsRequestDto,
+		data: OptionsUpdateRequestDto,
 	) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
 		let thing_id = make_thing(&ResourceEnum::Options.to_string(), &id);
