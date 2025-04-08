@@ -11,12 +11,12 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY ./src ./src
 
-RUN cargo build --release && strip /app/target/release/axum-surrealdb-boilerplate
+RUN cargo build --release && strip /app/target/release/najm-course-apis
 
 FROM gcr.io/distroless/cc AS runner
 
 WORKDIR /app
 
-COPY --from=builder /app/target/release/axum-surrealdb-boilerplate .
+COPY --from=builder /app/target/release/najm-course-apis .
 
-CMD ["/app/axum-boilerplate-surrealdb"]
+CMD ["/app/najm-course-apis"]

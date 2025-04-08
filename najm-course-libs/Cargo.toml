@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 najm-course-entities = { path = "../najm-course-entities" }
+surrealdb = { workspace = true, features = ["kv-mem"] }
 argon2.workspace = true
 axum.workspace = true
 tokio.workspace = true
@@ -12,4 +13,3 @@ chrono.workspace = true
 jsonwebtoken.workspace = true
 serde.workspace = true
 lettre.workspace = true
-surrealdb = { workspace = true, features = ["kv-mem"] }
