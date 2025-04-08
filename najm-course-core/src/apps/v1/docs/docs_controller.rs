@@ -1,9 +1,8 @@
 use crate::{
-	v1::{
-		auth, permissions, roles, users, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto
+	options::{OptionsItemDto, OptionsRequestDto, OptionsResponseListDto}, questions::{QuestionsItemDto, QuestionsRequestDto, QuestionsResponseListDto}, v1::{
+		auth, options, permissions, questions, roles, users, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto
 	}, AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto, MetaRequestDto, MetaResponseDto, PermissionsItemDto, PermissionsRequestDto, ResponseListSuccessDto, ResponseSuccessDto, RolesItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto, UsersCreateRequestDto, UsersDetailItemDto, UsersItemDto, UsersListItemDto, UsersUpdateRequestDto
 };
-
 use utoipa::{
 	openapi::security::{Http, HttpAuthScheme, SecurityScheme},
 	Modify, OpenApi,
@@ -33,6 +32,16 @@ use utoipa::{
      roles::roles_controller::post_create_role,
      roles::roles_controller::put_update_role,
      roles::roles_controller::delete_role,
+     options::options_controller::get_option_list,
+     options::options_controller::get_option_by_id,
+     options::options_controller::post_create_option,
+     options::options_controller::put_update_option,
+     options::options_controller::delete_option,
+     questions::questions_controller::get_question_list,
+     questions::questions_controller::get_question_by_id,
+     questions::questions_controller::post_create_question,
+     questions::questions_controller::put_update_question,
+     questions::questions_controller::delete_question,
      permissions::permissions_controller::get_permission_list,
      permissions::permissions_controller::get_permission_by_id,
      permissions::permissions_controller::post_create_permission,
@@ -60,13 +69,23 @@ use utoipa::{
            UsersListItemDto,
            UsersUpdateRequestDto,
            UsersCreateRequestDto,
+           OptionsItemDto,
+           OptionsResponseListDto,
+           OptionsRequestDto,
+           QuestionsItemDto,
+           QuestionsRequestDto,
+           QuestionsResponseListDto,
            ResponseSuccessDto<AuthLoginResponsetDto>,
            ResponseListSuccessDto<Vec<RolesItemDto>>,
            ResponseSuccessDto<RolesItemDto>,
            ResponseListSuccessDto<Vec<UsersListItemDto>>,
            ResponseSuccessDto<UsersDetailItemDto>,
            ResponseListSuccessDto<Vec<PermissionsItemDto>>,
-           ResponseSuccessDto<PermissionsItemDto>
+           ResponseSuccessDto<PermissionsItemDto>,
+           ResponseListSuccessDto<Vec<OptionsResponseListDto>>,
+           ResponseSuccessDto<OptionsItemDto>,
+           ResponseListSuccessDto<Vec<QuestionsResponseListDto>>,
+           ResponseSuccessDto<QuestionsItemDto>
         )
     ),
     info(
@@ -95,6 +114,12 @@ use utoipa::{
         ),
         (
             name = "Permissions", description = "List of Permissions Endpoints"
+        ),
+        (
+            name = "Options", description = "List of Options Endpoints"
+        ),
+        (
+            name = "Questions", description = "List of Questions Endpoints"
         ),
     )
 )]

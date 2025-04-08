@@ -27,6 +27,16 @@ pub enum PermissionsEnum {
 	CreateTests,
 	UpdateTests,
 	DeleteTests,
+	ReadListOptions,
+	ReadDetailOptions,
+	CreateOptions,
+	UpdateOptions,
+	DeleteOptions,
+	ReadListQuestions,
+	ReadDetailQuestions,
+	CreateQuestions,
+	UpdateQuestions,
+	DeleteQuestions,
 }
 
 impl fmt::Display for PermissionsEnum {
@@ -57,6 +67,16 @@ impl fmt::Display for PermissionsEnum {
 			PermissionsEnum::CreateTests => "Create Tests",
 			PermissionsEnum::UpdateTests => "Update Tests",
 			PermissionsEnum::DeleteTests => "Delete Tests",
+			PermissionsEnum::ReadListOptions => "Read List Options",
+			PermissionsEnum::ReadDetailOptions => "Read Detail Options",
+			PermissionsEnum::CreateOptions => "Create Options",
+			PermissionsEnum::UpdateOptions => "Update Options",
+			PermissionsEnum::DeleteOptions => "Delete Options",
+			PermissionsEnum::ReadListQuestions => "Read List Quesptions",
+			PermissionsEnum::ReadDetailQuestions => "Read Detail Questions",
+			PermissionsEnum::CreateQuestions => "Create Questions",
+			PermissionsEnum::UpdateQuestions => "Update Questions",
+			PermissionsEnum::DeleteQuestions => "Delete Questions",
 		};
 		write!(f, "{}", permission_str)
 	}

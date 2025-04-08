@@ -12,7 +12,9 @@ pub mod users;
 
 pub use auth::*;
 pub use docs::*;
+pub use options::*;
 pub use permissions::*;
+pub use questions::*;
 pub use roles::*;
 pub use users::*;
 

@@ -1,13 +1,14 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use validator::Validate;
 
 use super::OptionsSchema;
 
-#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct OptionsRequestDto {
-	pub id: String,
+	#[validate(length(min = 1, message = "Label must not be empty"))]
 	pub label: String,
-	pub image_url: String,
+	pub image_url: Option<String>,
 	pub is_correct: bool,
 }
 

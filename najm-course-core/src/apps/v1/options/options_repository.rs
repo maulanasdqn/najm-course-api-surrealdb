@@ -94,7 +94,7 @@ impl<'a> OptionsRepository<'a> {
 		let option: Option<OptionsSchema> = result.take(0)?;
 		let option = match option {
 			Some(r) if !r.is_deleted => r,
-			_ => bail!("Role not found"),
+			_ => bail!("Option not found"),
 		};
 		Ok(OptionsItemDto {
 			id: extract_id(&option.id),
@@ -116,7 +116,7 @@ impl<'a> OptionsRepository<'a> {
 			label: payload.label,
 			is_deleted: false,
 			is_correct: payload.is_correct,
-			image_url: Some(payload.image_url),
+			image_url: payload.image_url,
 			created_at: get_iso_date(),
 			updated_at: get_iso_date(),
 		};
@@ -127,7 +127,7 @@ impl<'a> OptionsRepository<'a> {
 		Ok("Option created successfully".into())
 	}
 
-	pub async fn query_update_role(
+	pub async fn query_update_option(
 		&self,
 		id: String,
 		data: OptionsRequestDto,
@@ -141,7 +141,7 @@ impl<'a> OptionsRepository<'a> {
 		let merged = OptionsSchema {
 			id: thing_id,
 			label: data.label,
-			image_url: Some(data.image_url),
+			image_url: data.image_url,
 			is_correct: data.is_correct,
 			is_deleted: existing.is_deleted,
 			created_at: existing.created_at,
@@ -155,7 +155,7 @@ impl<'a> OptionsRepository<'a> {
 		}
 	}
 
-	pub async fn query_delete_role(&self, id: String) -> Result<String> {
+	pub async fn query_delete_option(&self, id: String) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
 		let option_id = make_thing(&ResourceEnum::Options.to_string(), &id);
 		let option = self.query_raw_option_by_id(&option_id.id.to_raw()).await?;
