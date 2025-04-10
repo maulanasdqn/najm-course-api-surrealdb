@@ -16,6 +16,7 @@ pub use options::*;
 pub use permissions::*;
 pub use questions::*;
 pub use roles::*;
+pub use tests::*;
 pub use users::*;
 
 pub async fn routes() -> Router {
@@ -24,6 +25,9 @@ pub async fn routes() -> Router {
 		.nest("/users", users_router())
 		.nest("/roles", roles_router())
 		.nest("/permissions", permissions_router())
+		.nest("/options", options_router())
+		.nest("/questions", questions_router())
+		.nest("/tests", tests_router())
 		.layer(from_fn(auth::auth_middleware::auth_middleware));
 	Router::new().merge(public_routes).merge(protected_routes)
 }
