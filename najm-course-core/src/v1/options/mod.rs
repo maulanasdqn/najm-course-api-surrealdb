@@ -6,6 +6,8 @@ use axum::{
 pub mod options_controller;
 pub mod options_dto;
 pub mod options_repository;
+#[cfg(test)]
+pub mod options_repository_test;
 pub mod options_schema;
 pub mod options_service;
 
