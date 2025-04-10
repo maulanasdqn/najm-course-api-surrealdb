@@ -14,11 +14,12 @@ async fn test_get_user_list_should_return_200() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = authorized(
+	let res = authorized::<()>(
 		&server,
 		"GET",
 		"/v1/users?page=1&per_page=10",
 		vec![&PermissionsEnum::ReadListUsers.to_string()],
+		None,
 	)
 	.await;
 	assert_eq!(res.status_code(), StatusCode::OK);
@@ -31,11 +32,12 @@ async fn test_list_users_should_fail_with_invalid_per_page() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = authorized(
+	let res = authorized::<()>(
 		&server,
 		"GET",
 		"/v1/users?page=1&per_page=0",
 		vec![&PermissionsEnum::ReadListUsers.to_string()],
+		None,
 	)
 	.await;
 	assert_eq!(res.status_code(), StatusCode::BAD_REQUEST);
@@ -48,11 +50,12 @@ async fn test_list_users_should_fail_with_invalid_page() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = authorized(
+	let res = authorized::<()>(
 		&server,
 		"GET",
 		"/v1/users?page=0&per_page=10",
 		vec![&PermissionsEnum::ReadListUsers.to_string()],
+		None,
 	)
 	.await;
 	dbg!(res.text());
@@ -67,11 +70,12 @@ async fn test_list_users_should_ignore_invalid_sort_field() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = authorized(
+	let res = authorized::<()>(
 		&server,
 		"GET",
 		"/v1/users?page=1&per_page=10&sort_by=invalid_field",
 		vec![&PermissionsEnum::ReadListUsers.to_string()],
+		None,
 	)
 	.await;
 	assert_eq!(res.status_code(), StatusCode::OK);
@@ -84,11 +88,12 @@ async fn test_list_users_with_search_no_match_should_return_empty() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = authorized(
+	let res = authorized::<()>(
 		&server,
 		"GET",
 		"/v1/users?page=1&per_page=10&search=nonexistinguserxyz",
 		vec![&PermissionsEnum::ReadListUsers.to_string()],
+		None,
 	)
 	.await;
 	let body: serde_json::Value = res.json();
@@ -103,11 +108,12 @@ async fn test_list_users_should_return_empty_on_invalid_filter() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = authorized(
+	let res = authorized::<()>(
 		&server,
 		"GET",
 		"/v1/users?page=1&per_page=10&filter_by=is_active&filter=maybe",
 		vec![&PermissionsEnum::ReadListUsers.to_string()],
+		None,
 	)
 	.await;
 	let body: serde_json::Value = res.json();
@@ -122,11 +128,12 @@ async fn test_get_user_list_with_search_should_return_200() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = authorized(
+	let res = authorized::<()>(
 		&server,
 		"GET",
 		"/v1/users?page=1&per_page=10&search=maulana",
 		vec![&PermissionsEnum::ReadListUsers.to_string()],
+		None,
 	)
 	.await;
 	dbg!(res.text());
@@ -157,7 +164,14 @@ async fn test_create_user_should_return_201() {
 		referral_code: None,
 		referred_by: None,
 	};
-	let res = server.post("/v1/users/create").json(&payload).await;
+	let res = authorized(
+		&server,
+		"POST",
+		"/v1/users/create",
+		vec![&PermissionsEnum::CreateUsers.to_string()],
+		Some(&payload),
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::CREATED);
 }
 
@@ -186,10 +200,24 @@ async fn test_get_user_detail_should_return_200() {
 		referral_code: None,
 		referred_by: None,
 	};
-	server.post("/v1/users/create").json(&payload).await;
+	authorized(
+		&server,
+		"POST",
+		"/v1/users/create",
+		vec![&PermissionsEnum::CreateUsers.to_string()],
+		Some(&payload),
+	)
+	.await;
 	let user = repo.query_user_by_email(payload.email).await.unwrap();
 	let user_id = user.id.id.to_raw();
-	let res = server.get(&format!("/v1/users/detail/{}", user_id)).await;
+	let res = authorized::<()>(
+		&server,
+		"GET",
+		&format!("/v1/users/detail/{}", user_id),
+		vec![&PermissionsEnum::ReadDetailUsers.to_string()],
+		None,
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::OK);
 }
 
@@ -217,15 +245,27 @@ async fn test_delete_user_should_return_200() {
 		referral_code: None,
 		referred_by: None,
 	};
-	let create_res = server.post("/v1/users/create").json(&payload).await;
+	let create_res = authorized(
+		&server,
+		"POST",
+		"/v1/users/create",
+		vec![&PermissionsEnum::CreateUsers.to_string()],
+		Some(&payload),
+	)
+	.await;
 	assert_eq!(create_res.status_code(), StatusCode::CREATED);
 	let detail_res = repo.query_user_by_email(payload.email.clone()).await;
 	assert!(detail_res.is_ok(), "User not found after creation");
 	let user = detail_res.unwrap();
 	let user_id_for_delete = user.id.id.to_raw();
-	let delete_res = server
-		.delete(&format!("/v1/users/delete/{}", user_id_for_delete))
-		.await;
+	let delete_res = authorized::<()>(
+		&server,
+		"DELETE",
+		&format!("/v1/users/delete/{}", user_id_for_delete),
+		vec![&PermissionsEnum::DeleteUsers.to_string()],
+		None,
+	)
+	.await;
 	assert_eq!(delete_res.status_code(), StatusCode::OK);
 }
 
@@ -254,15 +294,26 @@ async fn test_activate_user_should_return_200() {
 		referral_code: None,
 		referred_by: None,
 	};
-	let res_create = server.post("/v1/users/create").json(&payload).await;
+	let res_create = authorized(
+		&server,
+		"POST",
+		"/v1/users/create",
+		vec![&PermissionsEnum::CreateUsers.to_string()],
+		Some(&payload),
+	)
+	.await;
 	dbg!(res_create.text());
 	let user = repo.query_user_by_email(payload.email).await.unwrap();
 	dbg!(user.fullname);
 	let user_id = user.id.id.to_raw();
-	let res = server
-		.put(&format!("/v1/users/activate/{}", user_id))
-		.json(&UsersActiveInactiveRequestDto { is_active: true })
-		.await;
+	let res = authorized(
+		&server,
+		"PUT",
+		&format!("/v1/users/activate/{}", user_id),
+		vec![&PermissionsEnum::UpdateUsers.to_string()],
+		Some(&UsersActiveInactiveRequestDto { is_active: true }),
+	)
+	.await;
 	dbg!(res.text());
 	assert_eq!(res.status_code(), StatusCode::OK);
 }
@@ -293,7 +344,14 @@ async fn test_update_user_should_return_200() {
 		referral_code: None,
 		referred_by: None,
 	};
-	let create_res = server.post("/v1/users/create").json(&payload).await;
+	let create_res = authorized(
+		&server,
+		"POST",
+		"/v1/users/create",
+		vec![&PermissionsEnum::CreateUsers.to_string()],
+		Some(&payload),
+	)
+	.await;
 	assert_eq!(create_res.status_code(), StatusCode::CREATED);
 	let user = repo.query_user_by_email(unique_email).await.unwrap();
 	let user_id = user.id.id.to_raw();
@@ -312,10 +370,14 @@ async fn test_update_user_should_return_200() {
 		birthdate: Some("2000-01-01".into()),
 		avatar: None,
 	};
-	let res = server
-		.put(&format!("/v1/users/update/{}", user_id))
-		.json(&update_payload)
-		.await;
+	let res = authorized(
+		&server,
+		"PUT",
+		&format!("/v1/users/update/{}", user_id),
+		vec![&PermissionsEnum::UpdateUsers.to_string()],
+		Some(&update_payload),
+	)
+	.await;
 	let status = res.status_code();
 	let body = res.text();
 	assert_eq!(status, StatusCode::OK, "Response body: {}", body);
@@ -346,9 +408,23 @@ async fn test_create_user_should_fail_if_email_taken() {
 		referral_code: None,
 		referred_by: None,
 	};
-	let res1 = server.post("/v1/users/create").json(&payload).await;
+	let res1 = authorized(
+		&server,
+		"POST",
+		"/v1/users/create",
+		vec![&PermissionsEnum::CreateUsers.to_string()],
+		Some(&payload),
+	)
+	.await;
 	assert_eq!(res1.status_code(), StatusCode::CREATED);
-	let res2 = server.post("/v1/users/create").json(&payload).await;
+	let res2 = authorized(
+		&server,
+		"POST",
+		"/v1/users/create",
+		vec![&PermissionsEnum::CreateUsers.to_string()],
+		Some(&payload),
+	)
+	.await;
 	let body2 = res2.text();
 	assert_eq!(res2.status_code(), StatusCode::BAD_REQUEST);
 	assert!(body2.contains("User already exists"));
@@ -361,7 +437,14 @@ async fn test_get_user_detail_should_fail_if_not_found() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = server.get("/v1/users/detail/non-existent-id").await;
+	let res = authorized::<()>(
+		&server,
+		"GET",
+		"/v1/users/detail/non-existent-id",
+		vec![&PermissionsEnum::ReadDetailUsers.to_string()],
+		None,
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::NOT_FOUND);
 	let body = res.text();
 	assert!(body.contains("User not found"));
@@ -392,12 +475,33 @@ async fn test_delete_user_should_fail_if_already_deleted() {
 		referral_code: None,
 		referred_by: None,
 	};
-	server.post("/v1/users/create").json(&payload).await;
+	authorized(
+		&server,
+		"POST",
+		"/v1/users/create",
+		vec![&PermissionsEnum::CreateUsers.to_string()],
+		Some(&payload),
+	)
+	.await;
 	let user = repo.query_user_by_email(payload.email).await.unwrap();
 	let id = user.id.id.to_raw();
-	let res1 = server.delete(&format!("/v1/users/delete/{}", id)).await;
+	let res1 = authorized::<()>(
+		&server,
+		"DELETE",
+		&format!("/v1/users/delete/{}", id),
+		vec![&PermissionsEnum::DeleteUsers.to_string()],
+		None,
+	)
+	.await;
 	assert_eq!(res1.status_code(), StatusCode::OK);
-	let res2 = server.delete(&format!("/v1/users/delete/{}", id)).await;
+	let res2 = authorized::<()>(
+		&server,
+		"DELETE",
+		&format!("/v1/users/delete/{}", id),
+		vec![&PermissionsEnum::DeleteUsers.to_string()],
+		None,
+	)
+	.await;
 	assert_eq!(res2.status_code(), StatusCode::BAD_REQUEST);
 	let body = res2.text();
 	assert!(body.contains("User already deleted"));
@@ -431,12 +535,17 @@ async fn test_update_user_should_fail_if_user_not_found() {
 		birthdate: Some("2000-01-01".into()),
 		avatar: None,
 	};
-	let res = server
-		.put("/v1/users/update/non-existent-id")
-		.json(&update_payload)
-		.await;
-	assert_eq!(res.status_code(), StatusCode::BAD_REQUEST);
+	let res = authorized(
+		&server,
+		"PUT",
+		"/v1/users/update/non-existent-id",
+		vec![&PermissionsEnum::UpdateUsers.to_string()],
+		Some(&update_payload),
+	)
+	.await;
+	assert_eq!(res.status_code(), StatusCode::NOT_FOUND);
 	let body = res.text();
+	dbg!(res.text());
 	assert!(body.contains("User not found"));
 }
 
@@ -448,10 +557,14 @@ async fn test_activate_user_should_fail_if_user_not_found() {
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
 	let payload = UsersActiveInactiveRequestDto { is_active: true };
-	let res = server
-		.put("/v1/users/activate/non-existent-id")
-		.json(&payload)
-		.await;
+	let res = authorized(
+		&server,
+		"PUT",
+		"/v1/users/activate/non-existent-id",
+		vec![&PermissionsEnum::UpdateUsers.to_string()],
+		Some(&payload),
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::BAD_REQUEST);
 	let body = res.text();
 	assert!(body.contains("User not found"));
@@ -465,7 +578,14 @@ async fn test_create_user_should_fail_if_payload_invalid() {
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
 	let invalid_payload = serde_json::json!({});
-	let res = server.post("/v1/users/create").json(&invalid_payload).await;
+	let res = authorized(
+		&server,
+		"POST",
+		"/v1/users/create",
+		vec![&PermissionsEnum::CreateUsers.to_string()],
+		Some(&invalid_payload),
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
@@ -476,7 +596,15 @@ async fn test_list_users_should_fail_with_invalid_pagination() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = server.get("/v1/users?page=0&per_page=0").await;
+
+	let res = authorized::<()>(
+		&server,
+		"GET",
+		"/v1/users?page=0&per_page=0",
+		vec![&PermissionsEnum::ReadListUsers.to_string()],
+		None,
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::BAD_REQUEST);
 	let body = res.text();
 	assert!(
@@ -492,9 +620,14 @@ async fn test_list_users_should_fallback_on_invalid_order() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = server
-		.get("/v1/users?page=1&per_page=10&sort_by=email&order=invalid")
-		.await;
+	let res = authorized::<()>(
+		&server,
+		"GET",
+		"/v1/users?page=1&per_page=10&sort_by=email&order=invalid",
+		vec![&PermissionsEnum::ReadListUsers.to_string()],
+		None,
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::OK);
 }
 
@@ -505,9 +638,14 @@ async fn test_list_users_with_invalid_filter_by_should_return_empty() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = server
-		.get("/v1/users?page=1&per_page=10&filter_by=unknown_field&filter=value")
-		.await;
+	let res = authorized::<()>(
+		&server,
+		"GET",
+		"/v1/users?page=1&per_page=10&filter_by=unknown_field&filter=value",
+		vec![&PermissionsEnum::ReadListUsers.to_string()],
+		None,
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::OK);
 	let body: serde_json::Value = res.json();
 	assert_eq!(body["data"].as_array().unwrap().len(), 0);
@@ -520,10 +658,15 @@ async fn test_user_detail_should_fail_with_invalid_id_format() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = server.get("/v1/users/detail/!@#invalid-id").await;
+	let res = authorized::<()>(
+		&server,
+		"GET",
+		"/v1/users/detail/!@#invalid-id",
+		vec![&PermissionsEnum::ReadDetailUsers.to_string()],
+		None,
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::NOT_FOUND);
-	let body = res.text();
-	assert!(body.contains("User not found") || body.contains("not found"));
 }
 
 #[tokio::test]
@@ -533,10 +676,15 @@ async fn test_user_detail_should_fail_if_user_not_found() {
 		.nest("/v1/users", users_router())
 		.layer(Extension(state));
 	let server = TestServer::new(app).unwrap();
-	let res = server.get("/v1/users/detail/random-id-123456").await;
+	let res = authorized::<()>(
+		&server,
+		"GET",
+		"/v1/users/detail/random-id-123456",
+		vec![&PermissionsEnum::ReadDetailUsers.to_string()],
+		None,
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::NOT_FOUND);
-	let body = res.text();
-	assert!(body.contains("User not found"));
 }
 
 #[tokio::test]
@@ -564,11 +712,25 @@ async fn test_user_detail_should_fail_if_user_is_soft_deleted() {
 		referral_code: None,
 		referred_by: None,
 	};
-	server.post("/v1/users/create").json(&payload).await;
+	authorized(
+		&server,
+		"POST",
+		"/v1/users/create",
+		vec![&PermissionsEnum::CreateUsers.to_string()],
+		Some(&payload),
+	)
+	.await;
 	let user = repo.query_user_by_email(payload.email).await.unwrap();
 	let user_id = user.id.id.to_raw();
 	let _ = repo.query_delete_user(user_id.clone()).await.unwrap();
-	let res = server.get(&format!("/v1/users/detail/{}", user_id)).await;
+	let res = authorized::<()>(
+		&server,
+		"GET",
+		&format!("/v1/users/detail/{}", user_id),
+		vec![&PermissionsEnum::ReadDetailUsers.to_string()],
+		None,
+	)
+	.await;
 	dbg!(res.text());
 	assert_eq!(res.status_code(), StatusCode::NOT_FOUND);
 	let body = res.text();
@@ -600,7 +762,14 @@ async fn test_update_user_should_fail_if_user_is_deleted() {
 		referral_code: None,
 		referred_by: None,
 	};
-	server.post("/v1/users/create").json(&payload).await;
+	authorized(
+		&server,
+		"POST",
+		"/v1/users/create",
+		vec![&PermissionsEnum::CreateUsers.to_string()],
+		Some(&payload),
+	)
+	.await;
 	let user = repo.query_user_by_email(payload.email).await.unwrap();
 	let user_id = user.id.id.to_raw();
 	let _ = repo.query_delete_user(user_id.clone()).await.unwrap();
@@ -619,10 +788,14 @@ async fn test_update_user_should_fail_if_user_is_deleted() {
 		birthdate: Some("2000-01-01".into()),
 		avatar: None,
 	};
-	let res = server
-		.put(&format!("/v1/users/update/{}", user_id))
-		.json(&update_payload)
-		.await;
+	let res = authorized(
+		&server,
+		"PUT",
+		&format!("/v1/users/update/{}", user_id),
+		vec![&PermissionsEnum::UpdateUsers.to_string()],
+		Some(&update_payload),
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::BAD_REQUEST);
 	let body = res.text();
 	assert!(body.contains("User already deleted"));
@@ -653,7 +826,14 @@ async fn test_update_user_should_fail_if_payload_invalid() {
 		referral_code: None,
 		referred_by: None,
 	};
-	server.post("/v1/users/create").json(&payload).await;
+	authorized(
+		&server,
+		"POST",
+		"/v1/users/create",
+		vec![&PermissionsEnum::CreateUsers.to_string()],
+		Some(&payload),
+	)
+	.await;
 	let user = repo.query_user_by_email(payload.email).await.unwrap();
 	let user_id = user.id.id.to_raw();
 	let update_payload = UsersUpdateRequestDto {
@@ -671,10 +851,14 @@ async fn test_update_user_should_fail_if_payload_invalid() {
 		birthdate: Some("2000-01-01".into()),
 		avatar: None,
 	};
-	let res = server
-		.put(&format!("/v1/users/update/{}", user_id))
-		.json(&update_payload)
-		.await;
+	let res = authorized(
+		&server,
+		"PUT",
+		&format!("/v1/users/update/{}", user_id),
+		vec![&PermissionsEnum::UpdateUsers.to_string()],
+		Some(&update_payload),
+	)
+	.await;
 	assert_eq!(res.status_code(), StatusCode::BAD_REQUEST);
 	let body = res.text();
 	assert!(

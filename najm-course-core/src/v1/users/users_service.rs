@@ -133,7 +133,12 @@ impl UsersService {
 	) -> Response {
 		let user_data = user.clone();
 		let repo = UsersRepository::new(state);
-		let existing_user = repo.query_user_by_id(id.clone()).await.unwrap();
+		let existing_user = match repo.query_user_by_id(id.clone()).await {
+			Ok(user) => user,
+			Err(_) => {
+				return common_response(StatusCode::NOT_FOUND, "User not found");
+			}
+		};
 		let user_id = make_thing(&ResourceEnum::Users.to_string(), &id);
 		let role_id = make_thing(&ResourceEnum::Roles.to_string(), "");
 		let updated_user = UsersSchema {

@@ -1,5 +1,6 @@
 use axum_test::{TestResponse, TestServer};
 use najm_course_entities::AppState;
+use serde::Serialize;
 use surrealdb::{
 	Surreal,
 	engine::{local::Mem, remote::ws::Ws},
@@ -55,23 +56,31 @@ pub fn test_auth_token_with_permissions(perms: Vec<&str>) -> String {
 	format!("Bearer test-token:{}", permissions_str)
 }
 
-pub async fn authorized(
+pub async fn authorized<T>(
 	server: &TestServer,
 	method: &str,
 	path: &str,
 	permissions: Vec<&str>,
-) -> TestResponse {
+	payload: Option<T>,
+) -> TestResponse
+where
+	T: Serialize,
+{
 	let token = test_auth_token_with_permissions(permissions);
-	match method {
-		"GET" => server.get(path).add_header("Authorization", &token).await,
-		"POST" => server.post(path).add_header("Authorization", &token).await,
-		"PUT" => server.put(path).add_header("Authorization", &token).await,
-		"DELETE" => {
-			server
-				.delete(path)
-				.add_header("Authorization", &token)
-				.await
-		}
+
+	let mut request = match method {
+		"GET" => server.get(path),
+		"POST" => server.post(path),
+		"PUT" => server.put(path),
+		"DELETE" => server.delete(path),
 		_ => panic!("Unsupported HTTP method"),
+	};
+
+	request = request.add_header("Authorization", &token);
+
+	if let Some(json) = payload {
+		request = request.json(&json);
 	}
+
+	request.await
 }

@@ -13,3 +13,6 @@ chrono.workspace = true
 jsonwebtoken.workspace = true
 serde.workspace = true
 lettre.workspace = true
+log.workspace = true
+env_logger.workspace = true
+
