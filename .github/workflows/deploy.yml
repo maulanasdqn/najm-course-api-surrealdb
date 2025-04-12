@@ -32,7 +32,7 @@ jobs:
           script: |
             set -e
             echo "Stopping the service before uploading the binary"
-            sudo systemctl stop imphnen-backend-service
+            sudo systemctl stop najm-course-api
 
       - name: Upload artifact to VPS
         uses: appleboy/scp-action@v0.1.7
@@ -60,6 +60,6 @@ jobs:
 
             sudo systemctl daemon-reload
 
-            sudo systemctl restart imphnen-backend-service
+            sudo systemctl restart najm-course-api
 
             echo "Deployment completed successfully"
