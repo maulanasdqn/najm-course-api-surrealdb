@@ -45,7 +45,14 @@ impl QuestionsService {
 		let repo = QuestionsRepository::new(state);
 		match repo.query_create_question(payload).await {
 			Ok(msg) => common_response(StatusCode::CREATED, &msg),
-			Err(e) => common_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
+			Err(e) => {
+				let msg = e.to_string();
+				if msg.contains("must not be empty") || msg.contains("non-empty label") {
+					common_response(StatusCode::BAD_REQUEST, &msg)
+				} else {
+					common_response(StatusCode::INTERNAL_SERVER_ERROR, &msg)
+				}
+			}
 		}
 	}
 

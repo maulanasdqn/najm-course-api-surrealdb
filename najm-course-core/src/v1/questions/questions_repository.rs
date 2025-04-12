@@ -10,6 +10,7 @@ use crate::{
 use anyhow::{bail, Result};
 use najm_course_utils::get_iso_date;
 use surrealdb::Uuid;
+use validator::Validate;
 
 pub struct QuestionsRepository<'a> {
 	state: &'a AppState,
@@ -65,7 +66,8 @@ impl<'a> QuestionsRepository<'a> {
 	pub async fn query_question_by_id(&self, id: String) -> Result<QuestionsItemDto> {
 		let db = &self.state.surrealdb_ws;
 		let query = format!(
-			"SELECT * FROM app_questions:⟨{}⟩ WHERE is_deleted = false",
+			"SELECT * FROM {}:⟨{}⟩ WHERE is_deleted = false",
+			ResourceEnum::Questions.to_string(),
 			id
 		);
 		let mut result = db.query(query).await?;
@@ -100,12 +102,23 @@ impl<'a> QuestionsRepository<'a> {
 		&self,
 		payload: QuestionsCreateRequestDto,
 	) -> Result<String> {
+		payload.validate()?;
+		if payload.options.is_empty() {
+			bail!("Options must not be empty");
+		}
+		if payload
+			.options
+			.iter()
+			.any(|opt| opt.label.trim().is_empty())
+		{
+			bail!("Each option must have a non-empty label");
+		}
 		let db = &self.state.surrealdb_ws;
 		let question_id = Uuid::new_v4().to_string();
 		let mut option_things = Vec::new();
 		for option in &payload.options {
 			let option_id = Uuid::new_v4().to_string();
-			let option_thing = make_thing("app_options", &option_id);
+			let option_thing = make_thing(&ResourceEnum::Options.to_string(), &option_id);
 			let option_schema = OptionsSchema {
 				id: option_thing.clone(),
 				label: option.label.clone(),
@@ -115,8 +128,8 @@ impl<'a> QuestionsRepository<'a> {
 				created_at: get_iso_date(),
 				updated_at: get_iso_date(),
 			};
-			let _: Option<OptionsSchema> = db
-				.create(("app_options", option_id))
+			let _res: Option<OptionsSchema> = db
+				.create((ResourceEnum::Options.to_string(), option_id))
 				.content(option_schema)
 				.await?;
 			option_things.push(option_thing);
@@ -132,11 +145,11 @@ impl<'a> QuestionsRepository<'a> {
 			created_at: get_iso_date(),
 			updated_at: get_iso_date(),
 		};
-		let _: Option<QuestionsSchema> = db
-			.create((&ResourceEnum::Questions.to_string(), question_id))
+		let _res: Option<QuestionsSchema> = db
+			.create((&ResourceEnum::Questions.to_string(), question_id.clone()))
 			.content(question)
 			.await?;
-		Ok("Question created successfully".into())
+		Ok(question_id)
 	}
 
 	pub async fn query_update_question(
@@ -144,6 +157,13 @@ impl<'a> QuestionsRepository<'a> {
 		id: String,
 		data: QuestionsUpdateRequestDto,
 	) -> Result<String> {
+		data.validate()?;
+		if data.options.is_empty() {
+			bail!("Options must not be empty");
+		}
+		if data.options.iter().any(|opt| opt.label.trim().is_empty()) {
+			bail!("Each option must have a non-empty label");
+		}
 		let db = &self.state.surrealdb_ws;
 		let question_thing_id = make_thing(&ResourceEnum::Questions.to_string(), &id);
 		let existing = self.query_raw_question_by_id(&id).await?;
@@ -153,7 +173,7 @@ impl<'a> QuestionsRepository<'a> {
 		let mut option_things = Vec::new();
 		for option in &data.options {
 			let option_id = Uuid::new_v4().to_string();
-			let option_thing = make_thing("app_options", &option_id);
+			let option_thing = make_thing(&ResourceEnum::Options.to_string(), &option_id);
 			let option_schema = OptionsSchema {
 				id: option_thing.clone(),
 				label: option.label.clone(),
@@ -163,11 +183,10 @@ impl<'a> QuestionsRepository<'a> {
 				created_at: get_iso_date(),
 				updated_at: get_iso_date(),
 			};
-			let _: Option<OptionsSchema> = db
-				.create(("app_options", option_id))
+			let _res: Option<OptionsSchema> = db
+				.create((ResourceEnum::Options.to_string(), option_id))
 				.content(option_schema)
 				.await?;
-
 			option_things.push(option_thing);
 		}
 		let merged = QuestionsSchema {

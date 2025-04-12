@@ -1,10 +1,10 @@
 use super::{
-	TestsCreateRequestDto, TestsItemDto, TestsResponseListDto, TestsSchema,
-	TestsUpdateRequestDto,
+	TestsCreateRequestDto, TestsDetailSchema, TestsItemDto, TestsResponseListDto,
+	TestsSchema, TestsUpdateRequestDto,
 };
 use crate::{
 	get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto,
-	OptionsItemDto, OptionsRepository, OptionsSchema, QuestionsItemDto,
+	OptionsItemDto, OptionsSchema, QuestionsDetailSchema, QuestionsItemDto,
 	QuestionsSchema, ResourceEnum, ResponseListSuccessDto,
 };
 use anyhow::{bail, Result};
@@ -26,7 +26,8 @@ impl<'a> TestsRepository<'a> {
 			db.select((ResourceEnum::Tests.to_string(), id)).await?;
 		match test {
 			Some(t) if !t.is_deleted => Ok(t),
-			_ => bail!("Test not found"),
+			Some(_) => bail!("Test already deleted"),
+			None => bail!("Test not found"),
 		}
 	}
 
@@ -62,57 +63,178 @@ impl<'a> TestsRepository<'a> {
 		})
 	}
 
-	pub async fn query_test_by_id(&self, id: String) -> Result<TestsItemDto> {
+	pub async fn query_test_by_id(&self, id: &str) -> Result<TestsItemDto> {
 		let db = &self.state.surrealdb_ws;
-		let test: Option<TestsSchema> =
-			db.select((ResourceEnum::Tests.to_string(), id)).await?;
-		let test = match test {
-			Some(t) if !t.is_deleted => t,
-			_ => bail!("Test not found"),
+		let query = format!(
+			"SELECT * FROM {}:⟨{}⟩ WHERE is_deleted = false LIMIT 1 FETCH questions, questions.options",
+			ResourceEnum::Tests.to_string(),
+			id
+		);
+		let mut result = db.query(query).await?;
+		let test: Option<TestsDetailSchema> = result.take(0)?;
+		let Some(t) = test else {
+			bail!("Test not found");
 		};
-		let options_repo = OptionsRepository::new(self.state);
-		let mut questions = vec![];
-		for thing in &test.questions {
-			let question: Option<QuestionsSchema> =
-				db.select((thing.tb.as_str(), thing.id.to_string())).await?;
-			if let Some(q) = question {
-				if q.is_deleted {
-					continue;
-				}
-				let mut option_items = Vec::new();
-				for opt_thing in &q.options {
-					if let Ok(opt) = options_repo
-						.query_raw_option_by_id(&opt_thing.id.to_string())
-						.await
-					{
-						option_items.push(OptionsItemDto {
-							id: match &opt.id.id {
-								surrealdb::sql::Id::String(s) => s.clone(),
-								_ => "".to_string(),
-							},
-							label: opt.label,
-							image_url: opt.image_url,
-							created_at: opt.created_at,
-							updated_at: opt.updated_at,
-						});
-					}
-				}
-				questions.push(QuestionsItemDto::from_with_options(q, option_items));
+		let TestsDetailSchema {
+			id,
+			name,
+			questions,
+			is_deleted: _,
+			created_at,
+			updated_at,
+		} = t;
+		let mut question_items = Vec::new();
+		for q in questions.into_iter().flatten().filter(|q| !q.is_deleted) {
+			let QuestionsDetailSchema {
+				id,
+				question,
+				discussion,
+				question_image_url,
+				discussion_image_url,
+				options,
+				is_deleted: _,
+				created_at,
+				updated_at,
+			} = q;
+			let mut option_items = Vec::new();
+			for opt in options.into_iter().flatten().filter(|opt| !opt.is_deleted) {
+				let id = match &opt.id.id {
+					surrealdb::sql::Id::String(s) => s.clone(),
+					_ => "".to_string(),
+				};
+				option_items.push(OptionsItemDto {
+					id,
+					label: opt.label,
+					image_url: opt.image_url,
+					created_at: opt.created_at,
+					updated_at: opt.updated_at,
+				});
 			}
+
+			question_items.push(QuestionsItemDto {
+				id: match &id.id {
+					surrealdb::sql::Id::String(s) => s.clone(),
+					_ => "".to_string(),
+				},
+				question,
+				discussion,
+				question_image_url,
+				discussion_image_url,
+				options: option_items,
+				created_at,
+				updated_at,
+			});
 		}
-		Ok(TestsItemDto::from_with_questions(test, questions))
+		Ok(TestsItemDto {
+			id: match &id.id {
+				surrealdb::sql::Id::String(s) => s.clone(),
+				_ => "".to_string(),
+			},
+			name,
+			questions: question_items,
+			created_at,
+			updated_at,
+		})
+	}
+
+	pub async fn query_test_by_name(&self, name: &str) -> Result<TestsItemDto> {
+		let db = &self.state.surrealdb_ws;
+		let query = format!(
+			"SELECT * FROM {} WHERE name = $name AND is_deleted = false LIMIT 1 FETCH questions, questions.options",
+			ResourceEnum::Tests.to_string()
+		);
+		let mut result = db.query(query).bind(("name", name.to_string())).await?;
+		let test: Option<TestsDetailSchema> = result.take(0)?;
+		let Some(t) = test else {
+			bail!("Test not found");
+		};
+		let TestsDetailSchema {
+			id,
+			name,
+			questions,
+			is_deleted: _,
+			created_at,
+			updated_at,
+		} = t;
+		let mut question_items = Vec::new();
+		for q in questions.into_iter().flatten().filter(|q| !q.is_deleted) {
+			let QuestionsDetailSchema {
+				id,
+				question,
+				discussion,
+				question_image_url,
+				discussion_image_url,
+				options,
+				is_deleted: _,
+				created_at,
+				updated_at,
+			} = q;
+			let mut option_items = Vec::new();
+			for opt in options.into_iter().flatten().filter(|opt| !opt.is_deleted) {
+				let id = match &opt.id.id {
+					surrealdb::sql::Id::String(s) => s.clone(),
+					_ => "".to_string(),
+				};
+				option_items.push(OptionsItemDto {
+					id,
+					label: opt.label,
+					image_url: opt.image_url,
+					created_at: opt.created_at,
+					updated_at: opt.updated_at,
+				});
+			}
+
+			question_items.push(QuestionsItemDto {
+				id: match &id.id {
+					surrealdb::sql::Id::String(s) => s.clone(),
+					_ => "".to_string(),
+				},
+				question,
+				discussion,
+				question_image_url,
+				discussion_image_url,
+				options: option_items,
+				created_at,
+				updated_at,
+			});
+		}
+		Ok(TestsItemDto {
+			id: match &id.id {
+				surrealdb::sql::Id::String(s) => s.clone(),
+				_ => "".to_string(),
+			},
+			name,
+			questions: question_items,
+			created_at,
+			updated_at,
+		})
 	}
 
 	pub async fn query_create_test(
 		&self,
 		payload: TestsCreateRequestDto,
 	) -> Result<String> {
+		if payload.questions.is_empty() {
+			bail!("Test must contain at least one question");
+		}
 		let db = &self.state.surrealdb_ws;
 		let test_id = Uuid::new_v4().to_string();
 		let mut question_things = Vec::new();
+
 		for question in &payload.questions {
+			if question.question.trim().is_empty() {
+				bail!("Question text cannot be empty");
+			}
+			if question.options.is_empty() {
+				bail!("Each question must have at least one option");
+			}
+			if question.options.iter().any(|o| o.label.trim().is_empty()) {
+				bail!("Each option must have a non-empty label");
+			}
+
 			let question_id = Uuid::new_v4().to_string();
 			let question_thing = make_thing("app_questions", &question_id);
+
 			let mut option_things = Vec::new();
 			for option in &question.options {
 				let option_id = Uuid::new_v4().to_string();
@@ -130,9 +252,9 @@ impl<'a> TestsRepository<'a> {
 					.create(("app_options", option_id))
 					.content(option_schema)
 					.await?;
-
 				option_things.push(option_thing);
 			}
+
 			let question_schema = QuestionsSchema {
 				id: question_thing.clone(),
 				question: question.question.clone(),
@@ -150,8 +272,10 @@ impl<'a> TestsRepository<'a> {
 				.await?;
 			question_things.push(question_thing);
 		}
+
+		let test_thing = make_thing(&ResourceEnum::Tests.to_string(), &test_id);
 		let test = TestsSchema {
-			id: make_thing(&ResourceEnum::Tests.to_string(), &test_id),
+			id: test_thing.clone(),
 			name: payload.name,
 			questions: question_things,
 			is_deleted: false,
@@ -159,10 +283,11 @@ impl<'a> TestsRepository<'a> {
 			updated_at: get_iso_date(),
 		};
 		let _: Option<TestsSchema> = db
-			.create((&ResourceEnum::Tests.to_string(), test_id))
+			.create((&ResourceEnum::Tests.to_string(), &test_id))
 			.content(test)
 			.await?;
-		Ok("Test created successfully".into())
+
+		Ok(test_id)
 	}
 
 	pub async fn query_update_test(
@@ -172,9 +297,9 @@ impl<'a> TestsRepository<'a> {
 	) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
 		let test_thing_id = make_thing(&ResourceEnum::Tests.to_string(), &id);
-		let existing = self.query_raw_test_by_id(&id).await?;
-		if existing.is_deleted {
-			bail!("Test already deleted");
+		let existing = self.query_test_by_id(&id).await?;
+		if existing.questions.is_empty() {
+			bail!("Test has no questions");
 		}
 		let mut question_things = Vec::new();
 		for question in &payload.questions {
@@ -184,6 +309,7 @@ impl<'a> TestsRepository<'a> {
 			for option in &question.options {
 				let option_id = option.id.clone();
 				let option_thing = make_thing("app_options", &option_id);
+
 				let option_schema = OptionsSchema {
 					id: option_thing.clone(),
 					label: option.label.clone(),
@@ -193,6 +319,7 @@ impl<'a> TestsRepository<'a> {
 					created_at: get_iso_date(),
 					updated_at: get_iso_date(),
 				};
+
 				let _: Option<OptionsSchema> = db
 					.update(get_id(&option_thing)?)
 					.content(option_schema)
@@ -217,21 +344,18 @@ impl<'a> TestsRepository<'a> {
 			question_things.push(question_thing);
 		}
 		let updated_test = TestsSchema {
-			id: test_thing_id,
-			name: payload.name,
+			id: test_thing_id.clone(),
+			name: payload.name.clone(),
 			questions: question_things,
-			is_deleted: existing.is_deleted,
+			is_deleted: false,
 			created_at: existing.created_at,
 			updated_at: get_iso_date(),
 		};
-		let result: Option<TestsSchema> = db
-			.update(get_id(&updated_test.id)?)
+		let _: Option<TestsSchema> = db
+			.update(get_id(&test_thing_id)?)
 			.content(updated_test)
 			.await?;
-		match result {
-			Some(_) => Ok("Success update test".into()),
-			None => bail!("Failed to update test"),
-		}
+		Ok("Success update test".into())
 	}
 
 	pub async fn query_delete_test(&self, id: String) -> Result<String> {

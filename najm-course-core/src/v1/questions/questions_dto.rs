@@ -15,12 +15,16 @@ pub struct QuestionsCreateRequestDto {
 	pub question_image_url: Option<String>,
 	pub discussion_image_url: Option<String>,
 
+	#[validate(length(min = 1, message = "At least one option is required"))]
+	#[validate]
 	pub options: Vec<OptionsCreateRequestDto>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct QuestionsUpdateRequestDto {
+	#[validate(length(min = 1, message = "Question ID is required"))]
 	pub id: String,
+
 	#[validate(length(min = 1, message = "Question must not be empty"))]
 	pub question: String,
 
@@ -30,6 +34,8 @@ pub struct QuestionsUpdateRequestDto {
 	pub question_image_url: Option<String>,
 	pub discussion_image_url: Option<String>,
 
+	#[validate(length(min = 1, message = "At least one option is required"))]
+	#[validate]
 	pub options: Vec<OptionsUpdateRequestDto>,
 }
 
