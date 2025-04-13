@@ -54,3 +54,18 @@ impl From<OptionsSchema> for OptionsResponseListDto {
 		}
 	}
 }
+
+impl From<OptionsSchema> for OptionsItemDto {
+	fn from(o: OptionsSchema) -> Self {
+		Self {
+			id: match o.id.id {
+				surrealdb::sql::Id::String(s) => s,
+				_ => "".to_string(),
+			},
+			label: o.label,
+			image_url: o.image_url,
+			created_at: o.created_at,
+			updated_at: o.updated_at,
+		}
+	}
+}

@@ -1,5 +1,7 @@
-use super::QuestionsSchema;
-use crate::{OptionsCreateRequestDto, OptionsItemDto, OptionsUpdateRequestDto};
+use super::{QuestionsDetailSchema, QuestionsSchema};
+use crate::{
+	OptionsCreateRequestDto, OptionsItemDto, OptionsSchema, OptionsUpdateRequestDto,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
@@ -78,20 +80,27 @@ impl From<QuestionsSchema> for QuestionsResponseListDto {
 
 impl QuestionsItemDto {
 	pub fn from_with_options(
-		value: QuestionsSchema,
-		options: Vec<OptionsItemDto>,
+		value: QuestionsDetailSchema,
+		options: Vec<Option<OptionsSchema>>,
 	) -> Self {
 		let id = match &value.id.id {
 			surrealdb::sql::Id::String(s) => s.clone(),
-			_ => "".to_string(),
+			_ => String::new(),
 		};
+
+		let mapped_options = options
+			.into_iter()
+			.filter_map(|o| o)
+			.map(OptionsItemDto::from)
+			.collect();
+
 		Self {
 			id,
 			question: value.question,
 			discussion: value.discussion,
 			question_image_url: value.question_image_url,
 			discussion_image_url: value.discussion_image_url,
-			options,
+			options: mapped_options,
 			created_at: value.created_at,
 			updated_at: value.updated_at,
 		}

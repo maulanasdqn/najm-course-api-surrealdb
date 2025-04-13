@@ -29,7 +29,7 @@ impl QuestionsService {
 
 	pub async fn get_question_by_id(state: &AppState, id: String) -> Response {
 		let repo = QuestionsRepository::new(state);
-		match repo.query_question_by_id(id).await {
+		match repo.query_question_by_id(&id.clone()).await {
 			Ok(question) => success_response(ResponseSuccessDto { data: question }),
 			Err(e) => common_response(StatusCode::NOT_FOUND, &e.to_string()),
 		}

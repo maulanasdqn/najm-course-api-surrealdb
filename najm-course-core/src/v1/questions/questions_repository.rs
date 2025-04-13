@@ -1,11 +1,10 @@
 use super::{
-	QuestionsCreateRequestDto, QuestionsItemDto, QuestionsResponseListDto,
-	QuestionsSchema, QuestionsUpdateRequestDto,
+	QuestionsCreateRequestDto, QuestionsDetailSchema, QuestionsItemDto,
+	QuestionsResponseListDto, QuestionsSchema, QuestionsUpdateRequestDto,
 };
 use crate::{
-	get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto,
-	OptionsItemDto, OptionsRepository, OptionsSchema, ResourceEnum,
-	ResponseListSuccessDto,
+	get_id, make_thing, query_list_with_meta, AppState, MetaRequestDto, OptionsSchema,
+	ResourceEnum, ResponseListSuccessDto,
 };
 use anyhow::{bail, Result};
 use najm_course_utils::get_iso_date;
@@ -63,39 +62,21 @@ impl<'a> QuestionsRepository<'a> {
 		})
 	}
 
-	pub async fn query_question_by_id(&self, id: String) -> Result<QuestionsItemDto> {
+	pub async fn query_question_by_id(&self, id: &str) -> Result<QuestionsItemDto> {
 		let db = &self.state.surrealdb_ws;
 		let query = format!(
-			"SELECT * FROM {}:⟨{}⟩ WHERE is_deleted = false",
+			"SELECT * FROM {}:⟨{}⟩ WHERE is_deleted = false FETCH options",
 			ResourceEnum::Questions.to_string(),
 			id
 		);
 		let mut result = db.query(query).await?;
-		let question: Option<QuestionsSchema> = result.take(0)?;
+		let question: Option<QuestionsDetailSchema> = result.take(0)?;
 		let question = match question {
 			Some(q) if !q.is_deleted => q,
 			_ => bail!("Question not found"),
 		};
-		let options_repo = OptionsRepository::new(self.state);
-		let mut option_items = Vec::new();
-		for thing in &question.options {
-			if let Ok(opt) = options_repo
-				.query_raw_option_by_id(&thing.id.to_string())
-				.await
-			{
-				option_items.push(OptionsItemDto {
-					id: match &opt.id.id {
-						surrealdb::sql::Id::String(s) => s.clone(),
-						_ => "".to_string(),
-					},
-					label: opt.label,
-					image_url: opt.image_url,
-					created_at: opt.created_at,
-					updated_at: opt.updated_at,
-				});
-			}
-		}
-		Ok(QuestionsItemDto::from_with_options(question, option_items))
+		let options = question.clone().options;
+		Ok(QuestionsItemDto::from_with_options(question, options))
 	}
 
 	pub async fn query_create_question(

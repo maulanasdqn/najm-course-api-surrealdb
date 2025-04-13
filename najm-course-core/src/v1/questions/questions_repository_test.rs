@@ -55,7 +55,7 @@ async fn test_get_question_by_id_should_return_data() {
 	let _ = repo.query_create_question(payload.clone()).await.unwrap();
 	let all = repo.query_question_list(Default::default()).await.unwrap();
 	let latest = all.data.last().expect("Expected at least one question");
-	let res = repo.query_question_by_id(latest.id.clone()).await;
+	let res = repo.query_question_by_id(&latest.id.clone()).await;
 	assert!(res.is_ok());
 }
 
@@ -64,31 +64,43 @@ async fn test_update_question_should_succeed() {
 	let state = create_mock_app_state().await;
 	let repo = QuestionsRepository::new(&state);
 	let payload = generate_question_payload();
-	let _ = repo.query_create_question(payload.clone()).await.unwrap();
-	let all = repo.query_question_list(Default::default()).await.unwrap();
-	let latest = all.data.last().expect("Expected at least one question");
+	let id = repo.query_create_question(payload.clone()).await.unwrap();
+	let mut question = None;
+	for i in 0..50 {
+		if let Ok(q) = repo.query_question_by_id(&id).await {
+			if q.options.len() >= 2 {
+				question = Some(q);
+				break;
+			}
+		}
+		println!("🔁 Retry [{}] – options belum ready", i);
+		tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+	}
+	let question = question.expect("Question not ready with options");
 	let update = QuestionsUpdateRequestDto {
-		id: latest.id.clone(),
+		id: question.id.clone(),
 		question: format!("Updated {}", payload.question),
 		discussion: "Updated discussion".into(),
 		question_image_url: None,
 		discussion_image_url: None,
 		options: vec![
 			OptionsUpdateRequestDto {
-				id: "".into(),
+				id: question.options[0].id.clone(),
 				label: "Updated A".into(),
 				image_url: None,
 				is_correct: false,
 			},
 			OptionsUpdateRequestDto {
-				id: "".into(),
+				id: question.options[1].id.clone(),
 				label: "Updated B".into(),
 				image_url: None,
 				is_correct: true,
 			},
 		],
 	};
-	let res = repo.query_update_question(latest.id.clone(), update).await;
+	let res = repo
+		.query_update_question(question.id.clone(), update)
+		.await;
 	assert!(res.is_ok());
 }
 

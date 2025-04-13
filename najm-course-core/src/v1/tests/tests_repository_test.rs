@@ -81,15 +81,24 @@ async fn test_query_test_by_id_should_return_test_with_questions() {
 	let state = create_mock_app_state().await;
 	let repo = TestsRepository::new(&state);
 	let payload = generate_test_payload("Full Fetch Test");
-	let _ = repo.query_create_test(payload.clone()).await.unwrap();
-	let tests = repo.query_test_list(Default::default()).await.unwrap();
-	let found = tests
-		.data
-		.iter()
-		.find(|t| t.name == payload.name)
-		.expect("Test not found");
-	let res = repo.query_test_by_id(&found.id.clone()).await;
-	assert!(res.is_ok());
+	let test_id = repo.query_create_test(payload.clone()).await.unwrap();
+	let mut test = None;
+	for i in 0..50 {
+		if let Ok(data) = repo.query_test_by_id(&test_id).await {
+			let ready = !data.questions.is_empty()
+				&& data.questions.iter().all(|q| !q.options.is_empty());
+			if ready {
+				test = Some(data);
+				break;
+			}
+		}
+		println!("🔁 Retry [{}] – Questions belum ready dengan options", i);
+		tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+	}
+	let test = test.expect("Test not found with full questions and options");
+	assert_eq!(test.name, payload.name);
+	assert!(!test.questions.is_empty());
+	assert!(test.questions.iter().all(|q| !q.options.is_empty()));
 }
 
 #[tokio::test]
