@@ -9,6 +9,7 @@ pub struct AnswersSchema {
 	pub question: Thing,
 	pub option: Thing,
 	pub is_deleted: bool,
+	pub is_correct: bool,
 	pub created_at: String,
 	pub updated_at: String,
 }
