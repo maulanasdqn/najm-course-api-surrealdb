@@ -220,7 +220,6 @@ impl<'a> TestsRepository<'a> {
 		let db = &self.state.surrealdb_ws;
 		let test_id = Uuid::new_v4().to_string();
 		let mut question_things = Vec::new();
-
 		for question in &payload.questions {
 			if question.question.trim().is_empty() {
 				bail!("Question text cannot be empty");
@@ -231,14 +230,15 @@ impl<'a> TestsRepository<'a> {
 			if question.options.iter().any(|o| o.label.trim().is_empty()) {
 				bail!("Each option must have a non-empty label");
 			}
-
 			let question_id = Uuid::new_v4().to_string();
-			let question_thing = make_thing("app_questions", &question_id);
+			let question_thing =
+				make_thing(&ResourceEnum::Questions.to_string(), &question_id);
 
 			let mut option_things = Vec::new();
 			for option in &question.options {
 				let option_id = Uuid::new_v4().to_string();
-				let option_thing = make_thing("app_options", &option_id);
+				let option_thing =
+					make_thing(&ResourceEnum::Options.to_string(), &option_id);
 				let option_schema = OptionsSchema {
 					id: option_thing.clone(),
 					label: option.label.clone(),
@@ -249,7 +249,7 @@ impl<'a> TestsRepository<'a> {
 					updated_at: get_iso_date(),
 				};
 				let _: Option<OptionsSchema> = db
-					.create(("app_options", option_id))
+					.create((&ResourceEnum::Options.to_string(), option_id))
 					.content(option_schema)
 					.await?;
 				option_things.push(option_thing);
@@ -267,12 +267,11 @@ impl<'a> TestsRepository<'a> {
 				updated_at: get_iso_date(),
 			};
 			let _: Option<QuestionsSchema> = db
-				.create(("app_questions", question_id))
+				.create((&ResourceEnum::Questions.to_string(), question_id))
 				.content(question_schema)
 				.await?;
 			question_things.push(question_thing);
 		}
-
 		let test_thing = make_thing(&ResourceEnum::Tests.to_string(), &test_id);
 		let test = TestsSchema {
 			id: test_thing.clone(),
@@ -304,12 +303,13 @@ impl<'a> TestsRepository<'a> {
 		let mut question_things = Vec::new();
 		for question in &payload.questions {
 			let question_id = question.id.clone();
-			let question_thing = make_thing("app_questions", &question_id);
+			let question_thing =
+				make_thing(&ResourceEnum::Questions.to_string(), &question_id);
 			let mut option_things = Vec::new();
 			for option in &question.options {
 				let option_id = option.id.clone();
-				let option_thing = make_thing("app_options", &option_id);
-
+				let option_thing =
+					make_thing(&ResourceEnum::Options.to_string(), &option_id);
 				let option_schema = OptionsSchema {
 					id: option_thing.clone(),
 					label: option.label.clone(),
@@ -319,7 +319,6 @@ impl<'a> TestsRepository<'a> {
 					created_at: get_iso_date(),
 					updated_at: get_iso_date(),
 				};
-
 				let _: Option<OptionsSchema> = db
 					.update(get_id(&option_thing)?)
 					.content(option_schema)

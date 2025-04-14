@@ -1,7 +1,7 @@
 use crate::{
-	options::{OptionsItemDto, OptionsCreateRequestDto, OptionsUpdateRequestDto, OptionsResponseListDto}, questions::{QuestionsItemDto, QuestionsCreateRequestDto, QuestionsResponseListDto}, tests::{TestsItemDto, TestsCreateRequestDto, TestsUpdateRequestDto, TestsResponseListDto}, v1::{
-		auth, options, permissions, questions, roles, tests, users, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto
-	}, AuthNewPasswordRequestDto, QuestionsUpdateRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto, MetaRequestDto, MetaResponseDto, PermissionsItemDto, PermissionsRequestDto, ResponseListSuccessDto, ResponseSuccessDto, RolesItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto, UsersCreateRequestDto, UsersDetailItemDto, UsersItemDto, UsersListItemDto, UsersUpdateRequestDto
+	options::{OptionsCreateRequestDto, OptionsItemDto, OptionsResponseListDto, OptionsUpdateRequestDto}, questions::{QuestionsCreateRequestDto, QuestionsItemDto, QuestionsResponseListDto}, sessions::{SessionsCreateRequestDto, SessionsDetailResponseDto, SessionsResponseDto, SessionsUpdateRequestDto}, tests::{TestsCreateRequestDto, TestsItemDto, TestsResponseListDto, TestsUpdateRequestDto}, v1::{
+		auth, options, permissions, questions, roles, sessions, tests, users, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto
+	}, AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto, MetaRequestDto, MetaResponseDto, PermissionsItemDto, PermissionsRequestDto, QuestionsUpdateRequestDto, ResponseListSuccessDto, ResponseSuccessDto, RolesItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto, UsersCreateRequestDto, UsersDetailItemDto, UsersItemDto, UsersListItemDto, UsersUpdateRequestDto
 };
 use utoipa::{
 	openapi::security::{Http, HttpAuthScheme, SecurityScheme},
@@ -47,6 +47,11 @@ use utoipa::{
      tests::tests_controller::post_create_test,
      tests::tests_controller::put_update_test,
      tests::tests_controller::delete_test,
+     sessions::sessions_controller::get_session_list,
+     sessions::sessions_controller::get_session_by_id,
+     sessions::sessions_controller::post_create_session,
+     sessions::sessions_controller::put_update_session,
+     sessions::sessions_controller::delete_session,
      permissions::permissions_controller::get_permission_list,
      permissions::permissions_controller::get_permission_by_id,
      permissions::permissions_controller::post_create_permission,
@@ -83,6 +88,13 @@ use utoipa::{
            QuestionsUpdateRequestDto,
            QuestionsResponseListDto,
            TestsItemDto,
+           TestsCreateRequestDto,
+           TestsUpdateRequestDto,
+           TestsResponseListDto,
+           SessionsCreateRequestDto,
+           SessionsResponseDto,
+           SessionsDetailResponseDto,
+           SessionsUpdateRequestDto,
            TestsCreateRequestDto,
            TestsUpdateRequestDto,
            TestsResponseListDto,
@@ -127,6 +139,12 @@ use utoipa::{
         ),
         (
             name = "Permissions", description = "List of Permissions Endpoints"
+        ),
+        (
+            name = "Tests", description = "List of Tests Endpoints"
+        ),
+        (
+            name = "Sessions", description = "List of Sessions Endpoints"
         ),
         (
             name = "Options", description = "List of Options Endpoints"
