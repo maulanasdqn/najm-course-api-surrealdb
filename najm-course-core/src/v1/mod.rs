@@ -1,3 +1,4 @@
+use answers::answers_router;
 use axum::{middleware::from_fn, Router};
 pub mod answers;
 pub mod auth;
@@ -28,6 +29,7 @@ pub async fn routes() -> Router {
 		.nest("/options", options_router())
 		.nest("/questions", questions_router())
 		.nest("/tests", tests_router())
+		.nest("/answers", answers_router())
 		.layer(from_fn(auth::auth_middleware::auth_middleware));
 	Router::new().merge(public_routes).merge(protected_routes)
 }

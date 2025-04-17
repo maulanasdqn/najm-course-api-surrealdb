@@ -1,16 +1,14 @@
-use axum::extract::{Path, Query};
-use axum::http::HeaderMap;
-use axum::response::IntoResponse;
-use axum::{Extension, Json};
-
+use super::{UsersListItemDto, UsersUpdateRequestDto};
 use crate::{
 	permissions_guard, MessageResponseDto, PermissionsEnum, ResponseListSuccessDto,
 	ResponseSuccessDto, UsersActiveInactiveRequestDto, UsersChangePasswordSchema,
 	UsersCreateRequestDto, UsersDetailItemDto,
 };
 use crate::{v1::users_service::UsersService, AppState, MetaRequestDto};
-
-use super::{UsersListItemDto, UsersUpdateRequestDto};
+use axum::extract::{Path, Query};
+use axum::http::HeaderMap;
+use axum::response::IntoResponse;
+use axum::{Extension, Json};
 
 #[utoipa::path(
 	get,
