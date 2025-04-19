@@ -1,6 +1,6 @@
 use crate::{
-	answers::{AnswersCreateRequestDto, TestsItemAnswersDto}, options::{OptionsCreateRequestDto, OptionsItemDto, OptionsResponseListDto, OptionsUpdateRequestDto}, questions::{QuestionsCreateRequestDto, QuestionsItemDto, QuestionsResponseListDto}, sessions::{SessionsCreateRequestDto, SessionsDetailResponseDto, SessionsResponseDto, SessionsUpdateRequestDto}, tests::{TestsCreateRequestDto, TestsItemDto, TestsResponseListDto, TestsUpdateRequestDto}, v1::{
-		answers, auth, options, permissions, questions, roles, sessions, tests, users, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto
+	answers::{AnswersCreateRequestDto, TestsItemAnswersDto}, options::{OptionsCreateRequestDto, OptionsItemDto, OptionsResponseListDto, OptionsUpdateRequestDto}, questions::{QuestionsCreateRequestDto, QuestionsItemDto, QuestionsResponseListDto}, sessions::{SessionsCreateRequestDto, SessionsDetailResponseDto, SessionsResponseDto, SessionsUpdateRequestDto}, storage::{StorageRequestDto, StorageResponseDto}, tests::{TestsCreateRequestDto, TestsItemDto, TestsResponseListDto, TestsUpdateRequestDto}, v1::{
+		answers, auth, options, permissions, storage, questions, roles, sessions, tests, users, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto
 	}, AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto, MetaRequestDto, MetaResponseDto, PermissionsItemDto, PermissionsRequestDto, QuestionsUpdateRequestDto, ResponseListSuccessDto, ResponseSuccessDto, RolesItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto, UsersCreateRequestDto, UsersDetailItemDto, UsersItemDto, UsersListItemDto, UsersUpdateRequestDto
 };
 use utoipa::{
@@ -59,7 +59,8 @@ use utoipa::{
      permissions::permissions_controller::get_permission_by_id,
      permissions::permissions_controller::post_create_permission,
      permissions::permissions_controller::put_update_permission,
-     permissions::permissions_controller::delete_permission
+     permissions::permissions_controller::delete_permission,
+     storage::storage_controller::post_upload
     ),
     components(
         schemas(
@@ -103,6 +104,8 @@ use utoipa::{
            TestsResponseListDto,
            TestsItemAnswersDto,
            AnswersCreateRequestDto,
+           StorageRequestDto,
+           StorageResponseDto,
            ResponseSuccessDto<AuthLoginResponsetDto>,
            ResponseListSuccessDto<Vec<RolesItemDto>>,
            ResponseSuccessDto<RolesItemDto>,

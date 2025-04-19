@@ -15,4 +15,7 @@ serde.workspace = true
 lettre.workspace = true
 log.workspace = true
 env_logger.workspace = true
+minio-rsc = "0.2.3"
+mime_guess = "2.0.5"
+bytes = "1.10.1"
 

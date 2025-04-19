@@ -8,6 +8,7 @@ pub mod permissions;
 pub mod questions;
 pub mod roles;
 pub mod sessions;
+pub mod storage;
 pub mod tests;
 pub mod users;
 
@@ -17,6 +18,7 @@ pub use options::*;
 pub use permissions::*;
 pub use questions::*;
 pub use roles::*;
+pub use storage::*;
 pub use tests::*;
 pub use users::*;
 
@@ -30,6 +32,7 @@ pub async fn routes() -> Router {
 		.nest("/questions", questions_router())
 		.nest("/tests", tests_router())
 		.nest("/answers", answers_router())
-		.layer(from_fn(auth::auth_middleware::auth_middleware));
+		.nest("/storage", storage_router().await)
+		.layer(from_fn(auth_middleware::auth_middleware));
 	Router::new().merge(public_routes).merge(protected_routes)
 }
