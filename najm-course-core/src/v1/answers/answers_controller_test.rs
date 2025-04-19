@@ -1,13 +1,11 @@
-use super::answers_router;
+use super::{answers_router, AnswerEntryDto};
 use crate::{
-	create_mock_app_state,
-	v1::answers::{AnswersCreateRequestDto, AnswersUpdateRequestDto},
-	AppState, PermissionsEnum,
+	create_mock_app_state, v1::answers::AnswersCreateRequestDto, AppState,
+	PermissionsEnum,
 };
 use axum::{Extension, Router};
 use axum_test::TestServer;
 use najm_course_utils::authorized;
-use surrealdb::Uuid;
 
 fn create_test_app(state: AppState) -> TestServer {
 	let app = Router::new()
@@ -16,101 +14,56 @@ fn create_test_app(state: AppState) -> TestServer {
 	TestServer::new(app).unwrap()
 }
 
-fn generate_payload() -> AnswersCreateRequestDto {
-	AnswersCreateRequestDto {
-		user: "user1".into(),
-		test: "test1".into(),
-		question: "question1".into(),
-		option: format!("option-{}", Uuid::new_v4()),
-		is_correct: true,
-	}
-}
-
 #[tokio::test]
-async fn test_post_create_answer_should_return_201() {
+async fn test_post_create_answer_should_return_200() {
+	use najm_course_utils::get_iso_date;
+	use surrealdb::Uuid;
 	let state = create_mock_app_state().await;
+	let db = &state.surrealdb_ws;
+	let user_id = Uuid::new_v4().to_string();
+	let test_id = Uuid::new_v4().to_string();
+	let question_id = Uuid::new_v4().to_string();
+	let option_id = Uuid::new_v4().to_string();
+	let now = get_iso_date();
+	let _ = db
+		.query(format!(
+			"CREATE app_users SET id = app_users:⟨{}⟩, name = 'Test User', is_deleted = false, created_at = '{}', updated_at = '{}'",
+			user_id, now, now
+		))
+		.await;
+	let _ = db
+		.query(format!(
+			"CREATE app_options SET id = app_options:⟨{}⟩, label = 'Option A', is_correct = true, image_url = 'https://example.com/img.png', is_deleted = false, created_at = '{}', updated_at = '{}'",
+			option_id, now, now
+		))
+		.await;
+	let _ = db
+		.query(format!(
+			"CREATE app_questions SET id = app_questions:⟨{}⟩, question = 'What is Rust?', discussion = 'Rust is a system programming language', question_image_url = 'https://example.com/q.png', discussion_image_url = 'https://example.com/d.png', options = [app_options:⟨{}⟩], is_deleted = false, created_at = '{}', updated_at = '{}'",
+			question_id, option_id, now, now
+		))
+		.await;
+	let _ = db
+		.query(format!(
+			"CREATE app_tests SET id = app_tests:⟨{}⟩, name = 'Dummy Test', questions = [app_questions:⟨{}⟩], is_deleted = false, created_at = '{}', updated_at = '{}'",
+			test_id, question_id, now, now
+		))
+		.await;
 	let server = create_test_app(state);
-	let payload = generate_payload();
-	let res = authorized(
-		&server,
-		"POST",
-		"/v1/answers/create",
-		vec![&PermissionsEnum::CreateAnswers.to_string()],
-		Some(&payload),
-	)
-	.await;
-	assert_eq!(res.status_code(), 201);
-}
-
-#[tokio::test]
-async fn test_get_answer_list_should_return_200() {
-	let state = create_mock_app_state().await;
-	let server = create_test_app(state);
-	let res = authorized::<()>(
-		&server,
-		"GET",
-		"/v1/answers?page=1&per_page=10",
-		vec![&PermissionsEnum::ReadListAnswers.to_string()],
-		None,
-	)
-	.await;
-	assert_eq!(res.status_code(), 200);
-}
-
-#[tokio::test]
-async fn test_get_answer_detail_should_return_200() {
-	let state = create_mock_app_state().await;
-	let server = create_test_app(state.clone());
-	let payload = generate_payload();
-	let _ = authorized(
-		&server,
-		"POST",
-		"/v1/answers/create",
-		vec![&PermissionsEnum::CreateAnswers.to_string()],
-		Some(&payload),
-	)
-	.await;
-	let repo = crate::v1::answers::AnswersRepository::new(&state);
-	let list = repo.query_list(Default::default()).await.unwrap().data;
-	let item = list.last().unwrap();
-	let res = authorized::<()>(
-		&server,
-		"GET",
-		&format!("/v1/answers/detail/{}", item.id),
-		vec![&PermissionsEnum::ReadDetailAnswers.to_string()],
-		None,
-	)
-	.await;
-	assert_eq!(res.status_code(), 200);
-}
-
-#[tokio::test]
-async fn test_put_update_answer_should_return_200() {
-	let state = create_mock_app_state().await;
-	let server = create_test_app(state.clone());
-	let payload = generate_payload();
-	let _ = authorized(
-		&server,
-		"POST",
-		"/v1/answers/create",
-		vec![&PermissionsEnum::CreateAnswers.to_string()],
-		Some(&payload),
-	)
-	.await;
-	let repo = crate::v1::answers::AnswersRepository::new(&state);
-	let list = repo.query_list(Default::default()).await.unwrap().data;
-	let item = list.last().unwrap();
-	let update = AnswersUpdateRequestDto {
-		id: item.id.clone(),
-		option: format!("updated-{}", Uuid::new_v4()),
-		is_correct: false,
+	let payload = AnswersCreateRequestDto {
+		user_id: user_id.clone(),
+		test_id: test_id.clone(),
+		answers: vec![AnswerEntryDto {
+			question_id,
+			option_id,
+		}],
 	};
 	let res = authorized(
 		&server,
-		"PUT",
-		&format!("/v1/answers/update/{}", item.id),
-		vec![&PermissionsEnum::UpdateAnswers.to_string()],
-		Some(&update),
+		"POST",
+		"/v1/answers/create",
+		vec![&PermissionsEnum::CreateAnswers.to_string()],
+		Some(&payload),
 	)
 	.await;
 	assert_eq!(res.status_code(), 200);
@@ -118,9 +71,48 @@ async fn test_put_update_answer_should_return_200() {
 
 #[tokio::test]
 async fn test_delete_answer_should_return_200() {
+	use najm_course_utils::get_iso_date;
+	use surrealdb::Uuid;
 	let state = create_mock_app_state().await;
+	let db = &state.surrealdb_ws;
+	let user_id = Uuid::new_v4().to_string();
+	let test_id = Uuid::new_v4().to_string();
+	let question_id = Uuid::new_v4().to_string();
+	let option_id = Uuid::new_v4().to_string();
+	let now = get_iso_date();
+	let _ = db
+		.query(format!(
+			"CREATE app_users SET id = app_users:⟨{}⟩, name = 'Test User', is_deleted = false, created_at = '{}', updated_at = '{}'",
+			user_id, now, now
+		))
+		.await;
+	let _ = db
+		.query(format!(
+			"CREATE app_options SET id = app_options:⟨{}⟩, label = 'Option A', is_correct = true, image_url = 'https://example.com/img.png', is_deleted = false, created_at = '{}', updated_at = '{}'",
+			option_id, now, now
+		))
+		.await;
+	let _ = db
+		.query(format!(
+			"CREATE app_questions SET id = app_questions:⟨{}⟩, question = 'What is Rust?', discussion = 'Rust is a system programming language', question_image_url = 'https://example.com/q.png', discussion_image_url = 'https://example.com/d.png', options = [app_options:⟨{}⟩], is_deleted = false, created_at = '{}', updated_at = '{}'",
+			question_id, option_id, now, now
+		))
+		.await;
+	let _ = db
+		.query(format!(
+			"CREATE app_tests SET id = app_tests:⟨{}⟩, name = 'Dummy Test', questions = [app_questions:⟨{}⟩], is_deleted = false, created_at = '{}', updated_at = '{}'",
+			test_id, question_id, now, now
+		))
+		.await;
 	let server = create_test_app(state.clone());
-	let payload = generate_payload();
+	let payload = AnswersCreateRequestDto {
+		user_id: user_id.clone(),
+		test_id: test_id.clone(),
+		answers: vec![AnswerEntryDto {
+			question_id: question_id.clone(),
+			option_id: option_id.clone(),
+		}],
+	};
 	let _ = authorized(
 		&server,
 		"POST",
@@ -129,13 +121,23 @@ async fn test_delete_answer_should_return_200() {
 		Some(&payload),
 	)
 	.await;
-	let repo = crate::v1::answers::AnswersRepository::new(&state);
-	let list = repo.query_list(Default::default()).await.unwrap().data;
-	let item = list.last().unwrap();
+	let answer_id = {
+		let results: Vec<crate::v1::answers::AnswersSchema> = db
+			.query(format!(
+				"SELECT * FROM app_answers WHERE test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ ORDER BY created_at DESC LIMIT 1",
+				test_id, user_id
+			))
+			.await
+			.unwrap()
+			.take(0)
+			.unwrap();
+
+		results.first().unwrap().id.id.to_raw()
+	};
 	let res = authorized::<()>(
 		&server,
 		"DELETE",
-		&format!("/v1/answers/delete/{}", item.id),
+		&format!("/v1/answers/delete/{}", answer_id),
 		vec![&PermissionsEnum::DeleteAnswers.to_string()],
 		None,
 	)

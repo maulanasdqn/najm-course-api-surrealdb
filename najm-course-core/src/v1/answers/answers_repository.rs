@@ -1,13 +1,14 @@
-use crate::{get_id, make_thing, AppState, MetaRequestDto, ResponseListSuccessDto};
-use anyhow::{bail, Result};
-use najm_course_libs::ResourceEnum;
-use najm_course_utils::{get_iso_date, query_list_with_meta};
-use validator::Validate;
+use std::vec;
 
 use super::{
-	AnswersCreateRequestDto, AnswersResponseDto, AnswersSchema,
-	AnswersUpdateRequestDto,
+	AnswersCreateRequestDto, AnswersSchema, QuestionsItemAnswersDto,
+	TestsItemAnswersDto,
 };
+use crate::{AppState, OptionsSchema, QuestionsRepository, TestsRepository};
+use anyhow::{bail, Result};
+use najm_course_libs::ResourceEnum;
+use najm_course_utils::{get_id, get_iso_date, make_thing};
+use validator::Validate;
 
 pub struct AnswersRepository<'a> {
 	pub state: &'a AppState,
@@ -18,91 +19,158 @@ impl<'a> AnswersRepository<'a> {
 		Self { state }
 	}
 
-	pub async fn query_list(
-		&self,
-		meta: MetaRequestDto,
-	) -> Result<ResponseListSuccessDto<Vec<AnswersResponseDto>>> {
-		let conditions = vec!["is_deleted = false".into()];
-		let raw = query_list_with_meta::<AnswersSchema>(
-			&self.state.surrealdb_ws,
-			&ResourceEnum::Answers.to_string(),
-			&meta,
-			conditions,
-			None,
-		)
-		.await?;
-		let data = raw.data.into_iter().map(AnswersResponseDto::from).collect();
-		Ok(ResponseListSuccessDto {
-			data,
-			meta: raw.meta,
-		})
-	}
-
-	pub async fn query_by_id(&self, id: &str) -> Result<AnswersResponseDto> {
+	pub async fn query_raw_answer_by_id(&self, id: &str) -> Result<AnswersSchema> {
 		let db = &self.state.surrealdb_ws;
 		let answer: Option<AnswersSchema> =
 			db.select((ResourceEnum::Answers.to_string(), id)).await?;
 		match answer {
-			Some(data) if !data.is_deleted => Ok(data.into()),
+			Some(a) if !a.is_deleted => Ok(a),
 			_ => bail!("Answer not found"),
 		}
+	}
+
+	pub async fn query_test_with_answers(
+		&self,
+		test_id: &str,
+		user_id: &str,
+	) -> Result<TestsItemAnswersDto> {
+		let db = &self.state.surrealdb_ws;
+		let test_repo = TestsRepository::new(&self.state);
+		let question_repo = QuestionsRepository::new(&self.state);
+
+		let test = test_repo.query_test_by_id(test_id).await?;
+
+		let answers: Vec<AnswersSchema> = db
+			.query(&format!(
+				"SELECT * FROM app_answers WHERE test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ AND is_deleted = false",
+				test_id, user_id
+			))
+			.await?
+			.take(0)?;
+
+		let mut questions_dto = vec![];
+		for answer in answers {
+			let question_id = answer.question.id.to_raw();
+			let _selected_option_id = answer.option.id.to_raw();
+			let question = question_repo.query_question_by_id(&question_id).await?;
+			let _options = question.options.clone();
+
+			let options_dto = vec![];
+
+			questions_dto.push(QuestionsItemAnswersDto {
+				id: question.id,
+				question: question.question,
+				discussion: question.discussion,
+				question_image_url: question.question_image_url,
+				discussion_image_url: question.discussion_image_url,
+				options: options_dto,
+				created_at: question.created_at,
+				updated_at: question.updated_at,
+			});
+		}
+
+		Ok(TestsItemAnswersDto {
+			id: test.id,
+			name: test.name,
+			questions: questions_dto,
+			created_at: test.created_at,
+			updated_at: test.updated_at,
+		})
+	}
+
+	pub async fn query_by_id(&self, id: &str) -> Result<TestsItemAnswersDto> {
+		let db = &self.state.surrealdb_ws;
+		let answer: Option<AnswersSchema> =
+			db.select((ResourceEnum::Answers.to_string(), id)).await?;
+		let Some(answer) = answer else {
+			bail!("Answer not found");
+		};
+		if answer.is_deleted {
+			bail!("Answer not found");
+		}
+		dbg!(&answer);
+		let user_id = answer.user.id.to_raw();
+		let test_id = answer.test.id.to_raw();
+		self.query_test_with_answers(&test_id, &user_id).await
 	}
 
 	pub async fn query_create(
 		&self,
 		payload: AnswersCreateRequestDto,
-	) -> Result<String> {
-		payload.validate()?;
+	) -> Result<TestsItemAnswersDto> {
+		payload.clone().validate()?;
 		let db = &self.state.surrealdb_ws;
-		let id = surrealdb::Uuid::new_v4().to_string();
+		let test_repo = TestsRepository::new(&self.state);
+		let question_repo = QuestionsRepository::new(&self.state);
 		let now = get_iso_date();
-		let answer = AnswersSchema {
-			id: make_thing(&ResourceEnum::Answers.to_string(), &id),
-			user: make_thing(&ResourceEnum::Users.to_string(), &payload.user),
-			test: make_thing(&ResourceEnum::Tests.to_string(), &payload.test),
-			question: make_thing(&ResourceEnum::Questions.to_string(), &payload.question),
-			option: make_thing(&ResourceEnum::Options.to_string(), &payload.option),
-			is_correct: payload.is_correct,
-			is_deleted: false,
-			created_at: now.clone(),
-			updated_at: now,
-		};
-		let _res: Option<AnswersSchema> = db
-			.create((ResourceEnum::Answers.to_string(), &id))
-			.content(answer)
-			.await?;
-		Ok(id)
-	}
-
-	pub async fn query_update(
-		&self,
-		id: String,
-		payload: AnswersUpdateRequestDto,
-	) -> Result<String> {
-		payload.validate()?;
-		let db = &self.state.surrealdb_ws;
-		let existing = self.query_by_id(&id).await?;
-		let updated = AnswersSchema {
-			id: make_thing(&ResourceEnum::Answers.to_string(), &id),
-			user: make_thing(&ResourceEnum::Users.to_string(), &existing.user),
-			test: make_thing(&ResourceEnum::Tests.to_string(), &existing.test),
-			question: make_thing(&ResourceEnum::Questions.to_string(), &existing.question),
-			option: make_thing(&ResourceEnum::Options.to_string(), &payload.option),
-			is_correct: payload.is_correct,
-			is_deleted: false,
-			created_at: existing.created_at,
-			updated_at: get_iso_date(),
-		};
-		let updated_key = get_id(&updated.id)?;
-		let _res: Option<AnswersSchema> =
-			db.update(updated_key).content(updated).await?;
-		Ok("Success update answer".into())
+		for entry in &payload.answers {
+			let id = surrealdb::Uuid::new_v4().to_string();
+			let selected_option: Option<OptionsSchema> = db
+				.select((ResourceEnum::Options.to_string(), &entry.option_id))
+				.await?;
+			let is_correct = selected_option.map_or(false, |opt| opt.is_correct);
+			let answer = AnswersSchema {
+				id: make_thing(&ResourceEnum::Answers.to_string(), &id),
+				user: make_thing(&ResourceEnum::Users.to_string(), &payload.user_id),
+				test: make_thing(&ResourceEnum::Tests.to_string(), &payload.test_id),
+				question: make_thing(
+					&ResourceEnum::Questions.to_string(),
+					&entry.question_id,
+				),
+				option: make_thing(&ResourceEnum::Options.to_string(), &entry.option_id),
+				is_correct,
+				is_deleted: false,
+				created_at: now.clone(),
+				updated_at: now.clone(),
+			};
+			let _: Option<AnswersSchema> = db
+				.create((ResourceEnum::Answers.to_string(), &id))
+				.content(answer)
+				.await?;
+		}
+		let test_data = test_repo.query_test_by_id(&payload.test_id).await?;
+		let answers: Vec<AnswersSchema> = db
+			.query(&format!(
+				"SELECT * FROM app_answers WHERE test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ AND is_deleted = false",
+				&payload.test_id, &payload.user_id
+			))
+			.await?
+			.take(0)?;
+		let mut questions_dto = vec![];
+		for answer in answers {
+			let question_id = answer.question.id.to_raw();
+			let _selected_option_id = answer.option.id.to_raw();
+			let question = question_repo.query_question_by_id(&question_id).await?;
+			let _options = question.options.clone();
+			let options_converted = vec![];
+			questions_dto.push(QuestionsItemAnswersDto {
+				id: question.id,
+				question: question.question,
+				discussion: question.discussion,
+				question_image_url: question.question_image_url,
+				discussion_image_url: question.discussion_image_url,
+				options: options_converted,
+				created_at: question.created_at,
+				updated_at: question.updated_at,
+			});
+		}
+		Ok(TestsItemAnswersDto {
+			id: test_data.id,
+			name: test_data.name,
+			questions: questions_dto,
+			created_at: test_data.created_at,
+			updated_at: test_data.updated_at,
+		})
 	}
 
 	pub async fn query_delete(&self, id: String) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
-		let existing = self.query_by_id(&id).await?;
-		if existing.is_deleted {
+		let raw: Option<AnswersSchema> =
+			db.select((ResourceEnum::Answers.to_string(), &id)).await?;
+		let Some(answer) = raw else {
+			bail!("Answer not found");
+		};
+		if answer.is_deleted {
 			bail!("Answer already deleted");
 		}
 		let answer_thing = make_thing(&ResourceEnum::Answers.to_string(), &id);

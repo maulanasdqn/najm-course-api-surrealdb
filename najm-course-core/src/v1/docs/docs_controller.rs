@@ -1,6 +1,6 @@
 use crate::{
-	answers::{AnswersCreateRequestDto, AnswersResponseDto, AnswersUpdateRequestDto}, options::{OptionsCreateRequestDto, OptionsItemDto, OptionsResponseListDto, OptionsUpdateRequestDto}, questions::{QuestionsCreateRequestDto, QuestionsItemDto, QuestionsResponseListDto}, sessions::{SessionsCreateRequestDto, SessionsDetailResponseDto, SessionsResponseDto, SessionsUpdateRequestDto}, tests::{TestsCreateRequestDto, TestsItemDto, TestsResponseListDto, TestsUpdateRequestDto}, v1::{
-		auth, options, permissions, questions, roles, sessions, tests, users, answers, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto
+	answers::{AnswersCreateRequestDto, TestsItemAnswersDto}, options::{OptionsCreateRequestDto, OptionsItemDto, OptionsResponseListDto, OptionsUpdateRequestDto}, questions::{QuestionsCreateRequestDto, QuestionsItemDto, QuestionsResponseListDto}, sessions::{SessionsCreateRequestDto, SessionsDetailResponseDto, SessionsResponseDto, SessionsUpdateRequestDto}, tests::{TestsCreateRequestDto, TestsItemDto, TestsResponseListDto, TestsUpdateRequestDto}, v1::{
+		answers, auth, options, permissions, questions, roles, sessions, tests, users, AuthLoginRequestDto, AuthLoginResponsetDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto
 	}, AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, MessageResponseDto, MetaRequestDto, MetaResponseDto, PermissionsItemDto, PermissionsRequestDto, QuestionsUpdateRequestDto, ResponseListSuccessDto, ResponseSuccessDto, RolesItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto, UsersCreateRequestDto, UsersDetailItemDto, UsersItemDto, UsersListItemDto, UsersUpdateRequestDto
 };
 use utoipa::{
@@ -47,10 +47,8 @@ use utoipa::{
      tests::tests_controller::post_create_test,
      tests::tests_controller::put_update_test,
      tests::tests_controller::delete_test,
-     answers::answers_controller::get_answer_list,
      answers::answers_controller::get_answer_by_id,
      answers::answers_controller::post_create_answer,
-     answers::answers_controller::put_update_answer,
      answers::answers_controller::delete_answer,
      sessions::sessions_controller::get_session_list,
      sessions::sessions_controller::get_session_by_id,
@@ -103,9 +101,8 @@ use utoipa::{
            TestsCreateRequestDto,
            TestsUpdateRequestDto,
            TestsResponseListDto,
+           TestsItemAnswersDto,
            AnswersCreateRequestDto,
-           AnswersUpdateRequestDto,
-           AnswersResponseDto,
            ResponseSuccessDto<AuthLoginResponsetDto>,
            ResponseListSuccessDto<Vec<RolesItemDto>>,
            ResponseSuccessDto<RolesItemDto>,
@@ -118,9 +115,8 @@ use utoipa::{
            ResponseListSuccessDto<Vec<TestsResponseListDto>>,
            ResponseSuccessDto<TestsItemDto>,
            ResponseListSuccessDto<Vec<QuestionsResponseListDto>>,
-           ResponseListSuccessDto<Vec<AnswersResponseDto>>,
            ResponseSuccessDto<QuestionsItemDto>,
-           ResponseSuccessDto<AnswersResponseDto>
+           ResponseSuccessDto<TestsItemAnswersDto>
         )
     ),
     info(
