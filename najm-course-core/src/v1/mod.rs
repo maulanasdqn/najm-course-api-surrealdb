@@ -27,6 +27,7 @@ pub async fn routes() -> Router {
 	let protected_routes = Router::new()
 		.nest("/users", users_router())
 		.nest("/roles", roles_router())
+		.nest("/sessions", sessions_router())
 		.nest("/permissions", permissions_router())
 		.nest("/options", options_router())
 		.nest("/questions", questions_router())
