@@ -122,7 +122,7 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 								.into_iter()
 								.filter_map(|o_opt| {
 									o_opt.map(|o| OptionsItemDto {
-										id: o.id.id.to_string(),
+										id: o.id.id.to_raw(),
 										label: o.label,
 										image_url: o.image_url,
 										created_at: o.created_at,
@@ -132,7 +132,7 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 								.collect();
 
 							QuestionsItemDto {
-								id: q.id.id.to_string(),
+								id: q.id.id.to_raw(),
 								question: q.question,
 								discussion: q.discussion,
 								question_image_url: q.question_image_url,

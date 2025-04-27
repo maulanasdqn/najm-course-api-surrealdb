@@ -84,7 +84,7 @@ impl fmt::Display for PermissionsEnum {
 			PermissionsEnum::CreateOptions => "Create Options",
 			PermissionsEnum::UpdateOptions => "Update Options",
 			PermissionsEnum::DeleteOptions => "Delete Options",
-			PermissionsEnum::ReadListQuestions => "Read List Quesptions",
+			PermissionsEnum::ReadListQuestions => "Read List Questions",
 			PermissionsEnum::ReadDetailQuestions => "Read Detail Questions",
 			PermissionsEnum::CreateQuestions => "Create Questions",
 			PermissionsEnum::UpdateQuestions => "Update Questions",
