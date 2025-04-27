@@ -18,6 +18,7 @@ pub use options::*;
 pub use permissions::*;
 pub use questions::*;
 pub use roles::*;
+pub use sessions::*;
 pub use storage::*;
 pub use tests::*;
 pub use users::*;
