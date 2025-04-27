@@ -64,7 +64,7 @@ impl From<OptionsSchema> for OptionsItemDto {
 				_ => "".to_string(),
 			},
 			label: o.label,
-			is_correct: None,
+			is_correct: Some(o.is_correct),
 			image_url: o.image_url,
 			created_at: o.created_at,
 			updated_at: o.updated_at,
