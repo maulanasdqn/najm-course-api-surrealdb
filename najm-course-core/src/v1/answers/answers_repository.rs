@@ -111,6 +111,7 @@ impl<'a> AnswersRepository<'a> {
 		let test_repo = TestsRepository::new(&self.state);
 		let question_repo = QuestionsRepository::new(&self.state);
 		let now = get_iso_date();
+
 		for entry in &payload.answers {
 			let id = surrealdb::Uuid::new_v4().to_string();
 			let selected_option: Option<OptionsSchema> = db
@@ -136,6 +137,7 @@ impl<'a> AnswersRepository<'a> {
 				.content(answer)
 				.await?;
 		}
+
 		let test_data = test_repo.query_test_by_id(&payload.test_id).await?;
 		let answers: Vec<AnswersSchema> = db
 			.query(&format!(
@@ -144,13 +146,24 @@ impl<'a> AnswersRepository<'a> {
 			))
 			.await?
 			.take(0)?;
+
+		let answer_id = answers
+			.get(0)
+			.ok_or_else(|| Error::msg("No answers found"))?
+			.id
+			.id
+			.to_raw()
+			.clone();
+
 		let mut questions_dto = vec![];
-		for answer in answers {
+		for answer in &answers {
 			let question_id = answer.question.id.to_raw();
 			let _selected_option_id = answer.option.id.to_raw();
 			let question = question_repo.query_question_by_id(&question_id).await?;
 			let _options = question.options.clone();
+
 			let options_converted = vec![];
+
 			questions_dto.push(QuestionsItemAnswersDto {
 				id: question.id,
 				question: question.question,
@@ -162,8 +175,9 @@ impl<'a> AnswersRepository<'a> {
 				updated_at: question.updated_at,
 			});
 		}
+
 		Ok(TestsItemAnswersDto {
-			id: test_data.id,
+			id: answer_id,
 			name: test_data.name,
 			questions: questions_dto,
 			created_at: test_data.created_at,
