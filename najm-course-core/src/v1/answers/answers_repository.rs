@@ -5,7 +5,7 @@ use super::{
 	TestsItemAnswersDto,
 };
 use crate::{AppState, OptionsSchema, QuestionsRepository, TestsRepository};
-use anyhow::{bail, Result};
+use anyhow::{bail, Error, Result};
 use najm_course_libs::ResourceEnum;
 use najm_course_utils::{get_id, get_iso_date, make_thing};
 use validator::Validate;
@@ -48,8 +48,16 @@ impl<'a> AnswersRepository<'a> {
 			.await?
 			.take(0)?;
 
+		let answer_id = answers
+			.get(0)
+			.ok_or_else(|| Error::msg("No answers found"))?
+			.id
+			.id
+			.to_raw()
+			.clone();
+
 		let mut questions_dto = vec![];
-		for answer in answers {
+		for answer in &answers {
 			let question_id = answer.question.id.to_raw();
 			let _selected_option_id = answer.option.id.to_raw();
 			let question = question_repo.query_question_by_id(&question_id).await?;
@@ -70,7 +78,7 @@ impl<'a> AnswersRepository<'a> {
 		}
 
 		Ok(TestsItemAnswersDto {
-			id: test.id,
+			id: answer_id,
 			name: test.name,
 			questions: questions_dto,
 			created_at: test.created_at,
