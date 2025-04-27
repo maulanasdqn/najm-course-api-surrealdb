@@ -1,8 +1,8 @@
 use std::vec;
 
 use super::{
-	AnswersCreateRequestDto, AnswersSchema, QuestionsItemAnswersDto,
-	TestsItemAnswersDto,
+	AnswersCreateRequestDto, AnswersSchema, OptionsItemAnswersDto,
+	QuestionsItemAnswersDto, TestsItemAnswersDto,
 };
 use crate::{AppState, OptionsSchema, QuestionsRepository, TestsRepository};
 use anyhow::{bail, Error, Result};
@@ -59,11 +59,22 @@ impl<'a> AnswersRepository<'a> {
 		let mut questions_dto = vec![];
 		for answer in &answers {
 			let question_id = answer.question.id.to_raw();
-			let _selected_option_id = answer.option.id.to_raw();
+			let selected_option_id = answer.option.id.to_raw();
 			let question = question_repo.query_question_by_id(&question_id).await?;
-			let _options = question.options.clone();
 
-			let options_dto = vec![];
+			let options_dto = question
+				.options
+				.iter()
+				.map(|opt| OptionsItemAnswersDto {
+					id: opt.id.clone(),
+					label: opt.label.clone(),
+					is_user_selected: opt.id == selected_option_id,
+					is_correct: opt.is_correct.clone().unwrap_or(false),
+					image_url: opt.image_url.clone(),
+					created_at: opt.created_at.clone(),
+					updated_at: opt.updated_at.clone(),
+				})
+				.collect();
 
 			questions_dto.push(QuestionsItemAnswersDto {
 				id: question.id,

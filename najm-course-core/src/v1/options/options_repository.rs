@@ -80,6 +80,7 @@ impl<'a> OptionsRepository<'a> {
 			id: extract_id(&option.id),
 			label: option.label,
 			image_url: option.image_url,
+			is_correct: None,
 			created_at: option.created_at,
 			updated_at: option.updated_at,
 		})
@@ -101,6 +102,7 @@ impl<'a> OptionsRepository<'a> {
 			id: extract_id(&option.id),
 			label: option.label,
 			image_url: option.image_url,
+			is_correct: None,
 			created_at: option.created_at,
 			updated_at: option.updated_at,
 		})

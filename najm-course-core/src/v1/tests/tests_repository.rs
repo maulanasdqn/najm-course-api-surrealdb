@@ -106,6 +106,7 @@ impl<'a> TestsRepository<'a> {
 					id,
 					label: opt.label,
 					image_url: opt.image_url,
+					is_correct: None,
 					created_at: opt.created_at,
 					updated_at: opt.updated_at,
 				});
@@ -179,6 +180,7 @@ impl<'a> TestsRepository<'a> {
 					id,
 					label: opt.label,
 					image_url: opt.image_url,
+					is_correct: None,
 					created_at: opt.created_at,
 					updated_at: opt.updated_at,
 				});

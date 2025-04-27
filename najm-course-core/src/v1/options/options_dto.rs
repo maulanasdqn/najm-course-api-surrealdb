@@ -26,6 +26,7 @@ pub struct OptionsItemDto {
 	pub id: String,
 	pub label: String,
 	pub image_url: Option<String>,
+	pub is_correct: Option<bool>,
 	pub created_at: String,
 	pub updated_at: String,
 }
@@ -63,6 +64,7 @@ impl From<OptionsSchema> for OptionsItemDto {
 				_ => "".to_string(),
 			},
 			label: o.label,
+			is_correct: None,
 			image_url: o.image_url,
 			created_at: o.created_at,
 			updated_at: o.updated_at,
