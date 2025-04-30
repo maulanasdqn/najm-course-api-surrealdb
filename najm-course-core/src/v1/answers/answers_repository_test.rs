@@ -7,7 +7,7 @@ use surrealdb::Uuid;
 
 pub async fn seed_answer_dependencies(
 	db: &SurrealWsClient,
-) -> Result<(String, String, String)> {
+) -> Result<(String, String, String, String)> {
 	let now = get_iso_date();
 
 	let user_id = Uuid::new_v4().to_string();
@@ -15,6 +15,9 @@ pub async fn seed_answer_dependencies(
 
 	let test_id = Uuid::new_v4().to_string();
 	let test_thing = make_thing("app_tests", &test_id);
+
+	let session_id = Uuid::new_v4().to_string();
+	let session_thing = make_thing("app_sessions", &session_id);
 
 	let question_id = Uuid::new_v4().to_string();
 	let question_thing = make_thing("app_questions", &question_id);
@@ -46,18 +49,26 @@ pub async fn seed_answer_dependencies(
 	))
 	.await?;
 
-	Ok((test_id, question_id, option_id))
+	db.query(&format!(
+		"CREATE {} SET id = app_sessions:⟨{}⟩, name = 'Dummy Session', category = 'Dummy Category', description = 'Dummy Description', student_type = 'Dummy Type', tests = [{}], is_active = true, is_deleted = false, created_at = '{}', updated_at = '{}'",
+		session_thing, test_id, test_thing, now, now
+	))
+	.await?;
+
+	Ok((test_id, session_id, question_id, option_id))
 }
 
 pub fn build_payload(
 	user_id: &str,
 	test_id: &str,
+	session_id: &str,
 	question_id: &str,
 	option_id: &str,
 ) -> AnswersCreateRequestDto {
 	AnswersCreateRequestDto {
 		user_id: user_id.to_string(),
 		test_id: test_id.to_string(),
+		session_id: session_id.to_string(),
 		answers: vec![AnswerEntryDto {
 			question_id: question_id.to_string(),
 			option_id: option_id.to_string(),
@@ -69,10 +80,11 @@ pub fn build_payload(
 async fn test_query_create_answers_should_succeed() {
 	let state = create_mock_app_state().await;
 	let db = &state.surrealdb_ws;
-	let (test_id, question_id, option_id) =
+	let (test_id, session_id, question_id, option_id) =
 		seed_answer_dependencies(db).await.unwrap();
 	let user_id = Uuid::new_v4().to_string();
-	let payload = build_payload(&user_id, &test_id, &question_id, &option_id);
+	let payload =
+		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
 	let repo = AnswersRepository::new(&state);
 	let result = repo.query_create(payload).await;
 	assert!(
@@ -86,19 +98,20 @@ async fn test_query_create_answers_should_succeed() {
 async fn test_query_by_id_should_return_data() {
 	let state = create_mock_app_state().await;
 	let db = &state.surrealdb_ws;
-	let (test_id, question_id, option_id) =
+	let (test_id, session_id, question_id, option_id) =
 		seed_answer_dependencies(db).await.unwrap();
 	let user_id = Uuid::new_v4().to_string();
-	let payload = build_payload(&user_id, &test_id, &question_id, &option_id);
+	let payload =
+		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
 	let repo = AnswersRepository::new(&state);
 	let _ = repo.query_create(payload.clone()).await.unwrap();
 	let query = format!(
-        "SELECT * FROM app_answers WHERE user = app_users:⟨{}⟩ AND test = app_tests:⟨{}⟩ AND is_deleted = false",
+        "SELECT * FROM app_answers WHERE user = app_users:⟨{}⟩ AND session = app_sessions:⟨{}⟩ AND test = app_tests:⟨{}⟩ AND is_deleted = false",
         user_id,
+		payload.session_id,
         payload.test_id
     );
 	let answers: Vec<AnswersSchema> = db.query(&query).await.unwrap().take(0).unwrap();
-
 	let answer_id = match answers.first() {
 		Some(ans) => ans.id.id.to_raw(),
 		None => panic!(
@@ -122,15 +135,17 @@ async fn test_query_by_id_should_fail_if_not_found() {
 async fn test_query_delete_should_soft_delete() {
 	let state = create_mock_app_state().await;
 	let db = &state.surrealdb_ws;
-	let (test_id, question_id, option_id) =
+	let (test_id, session_id, question_id, option_id) =
 		seed_answer_dependencies(db).await.unwrap();
 	let user_id = Uuid::new_v4().to_string();
-	let payload = build_payload(&user_id, &test_id, &question_id, &option_id);
+	let payload =
+		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
 	let repo = AnswersRepository::new(&state);
 	let _ = repo.query_create(payload.clone()).await.unwrap();
 	let query = format!(
-        "SELECT * FROM app_answers WHERE user = app_users:⟨{}⟩ AND test = app_tests:⟨{}⟩ AND is_deleted = false",
+        "SELECT * FROM app_answers WHERE user = app_users:⟨{}⟩ AND session = app_sessions:⟨{}⟩ AND test = app_tests:⟨{}⟩ AND is_deleted = false",
         user_id,
+		payload.session_id,
         payload.test_id
     );
 	let answers: Vec<AnswersSchema> = db.query(&query).await.unwrap().take(0).unwrap();
@@ -154,7 +169,7 @@ async fn test_query_delete_should_soft_delete() {
 async fn test_query_delete_should_fail_if_already_deleted() {
 	let state = create_mock_app_state().await;
 	let db = &state.surrealdb_ws;
-	let (test_id, question_id, option_id) =
+	let (test_id, session_id, question_id, option_id) =
 		seed_answer_dependencies(db).await.unwrap();
 	let user_id = Uuid::new_v4().to_string();
 	let now = chrono::Utc::now().to_rfc3339();
@@ -164,15 +179,15 @@ async fn test_query_delete_should_fail_if_already_deleted() {
 			user_id
 		))
 		.await;
-	let payload = build_payload(&user_id, &test_id, &question_id, &option_id);
+	let payload =
+		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
 	let repo = AnswersRepository::new(&state);
 	let create_res = repo.query_create(payload.clone()).await;
 	assert!(create_res.is_ok(), "Create failed: {:?}", create_res);
 	let raw_query = format!(
-        "SELECT * FROM app_answers WHERE test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ AND is_deleted = false",
-        payload.test_id, payload.user_id
-    );
-
+			"SELECT * FROM app_answers WHERE test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ AND session = app_sessions:⟨{}⟩ AND is_deleted = false",
+			payload.test_id, payload.user_id, payload.session_id
+	);
 	let raw_res = db.query(&raw_query).await;
 	dbg!(&raw_res);
 	assert!(raw_res.is_ok(), "Raw query failed: {:?}", raw_res);

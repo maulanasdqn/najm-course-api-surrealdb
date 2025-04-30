@@ -4,7 +4,9 @@ use super::{
 	AnswersCreateRequestDto, AnswersSchema, OptionsItemAnswersDto,
 	QuestionsItemAnswersDto, TestsItemAnswersDto,
 };
-use crate::{AppState, OptionsSchema, QuestionsRepository, TestsRepository};
+use crate::{
+	AppState, OptionsSchema, QuestionsRepository, SessionsRepository, TestsRepository,
+};
 use anyhow::{bail, Error, Result};
 use najm_course_libs::ResourceEnum;
 use najm_course_utils::{get_id, get_iso_date, make_thing};
@@ -31,23 +33,26 @@ impl<'a> AnswersRepository<'a> {
 
 	pub async fn query_test_with_answers(
 		&self,
+		session_id: &str,
 		test_id: &str,
 		user_id: &str,
 	) -> Result<TestsItemAnswersDto> {
 		let db = &self.state.surrealdb_ws;
-		let test_repo = TestsRepository::new(&self.state);
 		let question_repo = QuestionsRepository::new(&self.state);
-
-		let test = test_repo.query_test_by_id(test_id).await?;
-
+		let session_repo = SessionsRepository::new(&self.state);
+		let session = session_repo.query_session_by_id(session_id).await?;
+		let test: Vec<_> = session
+			.tests
+			.into_iter()
+			.filter(|t| t.test.id == test_id)
+			.collect();
 		let answers: Vec<AnswersSchema> = db
 			.query(&format!(
-				"SELECT * FROM app_answers WHERE test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ AND is_deleted = false",
-				test_id, user_id
+				"SELECT * FROM app_answers WHERE test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ AND session = app_sessions:⟨{}⟩ AND is_deleted = false",
+				test_id, user_id, session_id
 			))
 			.await?
 			.take(0)?;
-
 		let answer_id = answers
 			.get(0)
 			.ok_or_else(|| Error::msg("No answers found"))?
@@ -55,13 +60,11 @@ impl<'a> AnswersRepository<'a> {
 			.id
 			.to_raw()
 			.clone();
-
 		let mut questions_dto = vec![];
 		for answer in &answers {
 			let question_id = answer.question.id.to_raw();
 			let selected_option_id = answer.option.id.to_raw();
 			let question = question_repo.query_question_by_id(&question_id).await?;
-
 			let options_dto = question
 				.options
 				.iter()
@@ -69,13 +72,13 @@ impl<'a> AnswersRepository<'a> {
 					id: opt.id.clone(),
 					label: opt.label.clone(),
 					is_user_selected: opt.id == selected_option_id,
+					points: opt.points,
 					is_correct: opt.is_correct.clone().unwrap_or(false),
 					image_url: opt.image_url.clone(),
 					created_at: opt.created_at.clone(),
 					updated_at: opt.updated_at.clone(),
 				})
 				.collect();
-
 			questions_dto.push(QuestionsItemAnswersDto {
 				id: question.id,
 				question: question.question,
@@ -87,13 +90,35 @@ impl<'a> AnswersRepository<'a> {
 				updated_at: question.updated_at,
 			});
 		}
+		let test_response = test[0].test.clone();
+		let mut score = 0;
+
+		if session.category == "Akademik" {
+			let correct_count = questions_dto
+				.iter()
+				.filter(|q| q.options.iter().any(|o| o.is_user_selected && o.is_correct))
+				.count();
+			let raw_score = correct_count as f64 * test[0].multiplier as f64;
+			score = (test[0].weight as f64 / 100.0 * raw_score).round() as i32;
+		}
+
+		if session.category == "Psikologi" {
+			let total_points: i32 = questions_dto
+				.iter()
+				.flat_map(|q| &q.options)
+				.filter(|o| o.is_user_selected)
+				.map(|o| o.points.unwrap_or(0))
+				.sum();
+			score = ((total_points as f64 / 500.0) * 100.0).round() as i32;
+		}
 
 		Ok(TestsItemAnswersDto {
 			id: answer_id,
-			name: test.name,
+			name: test_response.name,
+			score,
 			questions: questions_dto,
-			created_at: test.created_at,
-			updated_at: test.updated_at,
+			created_at: test_response.created_at,
+			updated_at: test_response.updated_at,
 		})
 	}
 
@@ -110,7 +135,10 @@ impl<'a> AnswersRepository<'a> {
 		dbg!(&answer);
 		let user_id = answer.user.id.to_raw();
 		let test_id = answer.test.id.to_raw();
-		self.query_test_with_answers(&test_id, &user_id).await
+		let session_id = answer.session.id.to_raw();
+		self
+			.query_test_with_answers(&session_id, &test_id, &user_id)
+			.await
 	}
 
 	pub async fn query_create(
@@ -122,7 +150,6 @@ impl<'a> AnswersRepository<'a> {
 		let test_repo = TestsRepository::new(&self.state);
 		let question_repo = QuestionsRepository::new(&self.state);
 		let now = get_iso_date();
-
 		for entry in &payload.answers {
 			let id = surrealdb::Uuid::new_v4().to_string();
 			let selected_option: Option<OptionsSchema> = db
@@ -133,6 +160,10 @@ impl<'a> AnswersRepository<'a> {
 				id: make_thing(&ResourceEnum::Answers.to_string(), &id),
 				user: make_thing(&ResourceEnum::Users.to_string(), &payload.user_id),
 				test: make_thing(&ResourceEnum::Tests.to_string(), &payload.test_id),
+				session: make_thing(
+					&ResourceEnum::Sessions.to_string(),
+					&payload.session_id,
+				),
 				question: make_thing(
 					&ResourceEnum::Questions.to_string(),
 					&entry.question_id,
@@ -148,16 +179,14 @@ impl<'a> AnswersRepository<'a> {
 				.content(answer)
 				.await?;
 		}
-
 		let test_data = test_repo.query_test_by_id(&payload.test_id).await?;
 		let answers: Vec<AnswersSchema> = db
 			.query(&format!(
-				"SELECT * FROM app_answers WHERE test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ AND is_deleted = false",
-				&payload.test_id, &payload.user_id
+				"SELECT * FROM app_answers WHERE session = app_sessions:⟨{}⟩ AND test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ AND is_deleted = false",
+				&payload.session_id, &payload.test_id, &payload.user_id
 			))
 			.await?
 			.take(0)?;
-
 		let answer_id = answers
 			.get(0)
 			.ok_or_else(|| Error::msg("No answers found"))?
@@ -165,16 +194,13 @@ impl<'a> AnswersRepository<'a> {
 			.id
 			.to_raw()
 			.clone();
-
 		let mut questions_dto = vec![];
 		for answer in &answers {
 			let question_id = answer.question.id.to_raw();
 			let _selected_option_id = answer.option.id.to_raw();
 			let question = question_repo.query_question_by_id(&question_id).await?;
 			let _options = question.options.clone();
-
 			let options_converted = vec![];
-
 			questions_dto.push(QuestionsItemAnswersDto {
 				id: question.id,
 				question: question.question,
@@ -186,10 +212,10 @@ impl<'a> AnswersRepository<'a> {
 				updated_at: question.updated_at,
 			});
 		}
-
 		Ok(TestsItemAnswersDto {
 			id: answer_id,
 			name: test_data.name,
+			score: 0,
 			questions: questions_dto,
 			created_at: test_data.created_at,
 			updated_at: test_data.updated_at,

@@ -8,6 +8,7 @@ fn generate_payload() -> OptionsCreateRequestDto {
 		label: format!("Option {}", Uuid::new_v4()),
 		image_url: Some("https://example.com/image.png".into()),
 		is_correct: true,
+		points: Some(10),
 	}
 }
 
@@ -93,10 +94,11 @@ async fn test_query_update_option_should_update_existing_data() {
 		.await
 		.unwrap();
 	let update = OptionsUpdateRequestDto {
-		id: "ignored".into(), // field `id` tidak dipakai
+		id: "ignored".into(),
 		label: format!("Updated {}", payload.label),
 		image_url: Some("https://example.com/new.png".into()),
 		is_correct: false,
+		points: Some(20),
 	};
 	let result = repo.query_update_option(item.id.clone(), update).await;
 	assert!(result.is_ok());
@@ -118,6 +120,7 @@ async fn test_query_update_option_should_fail_if_deleted() {
 		label: format!("Updated {}", payload.label),
 		image_url: Some("https://example.com/new.png".into()),
 		is_correct: false,
+		points: Some(20),
 	};
 	let result = repo.query_update_option(item.id.clone(), update).await;
 	assert!(result.is_err(), "Expected update to fail on deleted option");
@@ -167,6 +170,7 @@ async fn test_query_create_option_should_allow_empty_image_url() {
 		label: format!("Option {}", Uuid::new_v4()),
 		image_url: None,
 		is_correct: true,
+		points: Some(10),
 	};
 	let result = repo.query_create_option(payload).await;
 	assert!(result.is_ok(), "Should allow creation without image_url");
@@ -181,6 +185,7 @@ async fn test_query_update_option_should_fail_if_id_not_found() {
 		label: "Should fail".into(),
 		image_url: None,
 		is_correct: false,
+		points: Some(20),
 	};
 	let result = repo
 		.query_update_option("non-existent-id".into(), update)
@@ -201,6 +206,7 @@ async fn test_query_option_list_should_respect_search_filter() {
 			label: label.clone(),
 			image_url: None,
 			is_correct: true,
+			points: Some(10),
 		})
 		.await
 		.unwrap();

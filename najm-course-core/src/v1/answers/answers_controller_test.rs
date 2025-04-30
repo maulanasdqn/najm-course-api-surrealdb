@@ -22,6 +22,7 @@ async fn test_post_create_answer_should_return_200() {
 	let db = &state.surrealdb_ws;
 	let user_id = Uuid::new_v4().to_string();
 	let test_id = Uuid::new_v4().to_string();
+	let session_id = Uuid::new_v4().to_string();
 	let question_id = Uuid::new_v4().to_string();
 	let option_id = Uuid::new_v4().to_string();
 	let now = get_iso_date();
@@ -49,10 +50,17 @@ async fn test_post_create_answer_should_return_200() {
 			test_id, question_id, now, now
 		))
 		.await;
+	let _ = db
+		.query(format!(
+			"CREATE app_sessions SET id = app_sessions:⟨{}⟩, name = 'Dummy Session', category = 'Dummy Category', description = 'Dummy Description', student_type = 'Dummy Type', tests = [app_tests:⟨{}⟩], is_active = true, is_deleted = false, created_at = '{}', updated_at = '{}'",
+			session_id, test_id, now, now
+		))
+		.await;
 	let server = create_test_app(state);
 	let payload = AnswersCreateRequestDto {
 		user_id: user_id.clone(),
 		test_id: test_id.clone(),
+		session_id: session_id.clone(),
 		answers: vec![AnswerEntryDto {
 			question_id,
 			option_id,
@@ -77,6 +85,7 @@ async fn test_delete_answer_should_return_200() {
 	let db = &state.surrealdb_ws;
 	let user_id = Uuid::new_v4().to_string();
 	let test_id = Uuid::new_v4().to_string();
+	let session_id = Uuid::new_v4().to_string();
 	let question_id = Uuid::new_v4().to_string();
 	let option_id = Uuid::new_v4().to_string();
 	let now = get_iso_date();
@@ -104,10 +113,17 @@ async fn test_delete_answer_should_return_200() {
 			test_id, question_id, now, now
 		))
 		.await;
+	let _ = db
+		.query(format!(
+			"CREATE app_sessions SET id = app_sessions:⟨{}⟩, name = 'Dummy Session', category = 'Dummy Category', description = 'Dummy Description', student_type = 'Dummy Type', tests = [app_tests:⟨{}⟩], is_active = true, is_deleted = false, created_at = '{}', updated_at = '{}'",
+			session_id, test_id, now, now
+		))
+		.await;
 	let server = create_test_app(state.clone());
 	let payload = AnswersCreateRequestDto {
 		user_id: user_id.clone(),
 		test_id: test_id.clone(),
+		session_id: session_id.clone(),
 		answers: vec![AnswerEntryDto {
 			question_id: question_id.clone(),
 			option_id: option_id.clone(),

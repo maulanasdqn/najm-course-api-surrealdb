@@ -20,6 +20,7 @@ fn generate_payload() -> OptionsCreateRequestDto {
 		label: format!("Option {}", Uuid::new_v4()),
 		image_url: Some("https://example.com/img.png".into()),
 		is_correct: true,
+		points: Some(10),
 	}
 }
 
@@ -106,6 +107,7 @@ async fn test_put_update_option_should_return_200() {
 		label: format!("Updated {}", item.label),
 		image_url: Some("https://example.com/updated.png".into()),
 		is_correct: false,
+		points: Some(20),
 	};
 	let res = authorized(
 		&server,
@@ -172,6 +174,7 @@ async fn test_put_update_option_should_fail_if_not_found() {
 		label: "Non-existent".into(),
 		image_url: None,
 		is_correct: false,
+		points: Some(20),
 	};
 	let res = authorized(
 		&server,

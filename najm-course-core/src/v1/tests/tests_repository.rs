@@ -107,6 +107,7 @@ impl<'a> TestsRepository<'a> {
 					label: opt.label,
 					image_url: opt.image_url,
 					is_correct: None,
+					points: None,
 					created_at: opt.created_at,
 					updated_at: opt.updated_at,
 				});
@@ -181,6 +182,7 @@ impl<'a> TestsRepository<'a> {
 					label: opt.label,
 					image_url: opt.image_url,
 					is_correct: None,
+					points: None,
 					created_at: opt.created_at,
 					updated_at: opt.updated_at,
 				});
@@ -246,6 +248,7 @@ impl<'a> TestsRepository<'a> {
 					label: option.label.clone(),
 					image_url: option.image_url.clone(),
 					is_correct: option.is_correct,
+					points: option.points,
 					is_deleted: false,
 					created_at: get_iso_date(),
 					updated_at: get_iso_date(),
@@ -315,6 +318,7 @@ impl<'a> TestsRepository<'a> {
 				let option_schema = OptionsSchema {
 					id: option_thing.clone(),
 					label: option.label.clone(),
+					points: option.points,
 					image_url: option.image_url.clone(),
 					is_correct: option.is_correct,
 					is_deleted: false,

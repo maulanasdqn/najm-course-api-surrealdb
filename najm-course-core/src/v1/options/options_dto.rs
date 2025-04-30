@@ -10,6 +10,7 @@ pub struct OptionsCreateRequestDto {
 	pub label: String,
 	pub image_url: Option<String>,
 	pub is_correct: bool,
+	pub points: Option<i32>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
@@ -19,6 +20,7 @@ pub struct OptionsUpdateRequestDto {
 	pub label: String,
 	pub image_url: Option<String>,
 	pub is_correct: bool,
+	pub points: Option<i32>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -27,6 +29,7 @@ pub struct OptionsItemDto {
 	pub label: String,
 	pub image_url: Option<String>,
 	pub is_correct: Option<bool>,
+	pub points: Option<i32>,
 	pub created_at: String,
 	pub updated_at: String,
 }
@@ -65,6 +68,7 @@ impl From<OptionsSchema> for OptionsItemDto {
 			},
 			label: o.label,
 			is_correct: Some(o.is_correct),
+			points: o.points,
 			image_url: o.image_url,
 			created_at: o.created_at,
 			updated_at: o.updated_at,

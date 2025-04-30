@@ -125,6 +125,7 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 										id: o.id.id.to_raw(),
 										label: o.label,
 										is_correct: None,
+										points: None,
 										image_url: o.image_url,
 										created_at: o.created_at,
 										updated_at: o.updated_at,

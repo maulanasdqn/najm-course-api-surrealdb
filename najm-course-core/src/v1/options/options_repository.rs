@@ -81,6 +81,7 @@ impl<'a> OptionsRepository<'a> {
 			label: option.label,
 			image_url: option.image_url,
 			is_correct: None,
+			points: option.points,
 			created_at: option.created_at,
 			updated_at: option.updated_at,
 		})
@@ -103,6 +104,7 @@ impl<'a> OptionsRepository<'a> {
 			label: option.label,
 			image_url: option.image_url,
 			is_correct: None,
+			points: option.points,
 			created_at: option.created_at,
 			updated_at: option.updated_at,
 		})
@@ -121,6 +123,7 @@ impl<'a> OptionsRepository<'a> {
 			is_correct: payload.is_correct,
 			image_url: payload.image_url,
 			is_deleted: false,
+			points: payload.points,
 			created_at: get_iso_date(),
 			updated_at: get_iso_date(),
 		};
@@ -147,6 +150,7 @@ impl<'a> OptionsRepository<'a> {
 			label: data.label,
 			image_url: data.image_url,
 			is_correct: data.is_correct,
+			points: data.points,
 			is_deleted: existing.is_deleted,
 			created_at: existing.created_at,
 			updated_at: get_iso_date(),

@@ -105,6 +105,7 @@ impl<'a> QuestionsRepository<'a> {
 				label: option.label.clone(),
 				image_url: option.image_url.clone(),
 				is_correct: option.is_correct,
+				points: option.points,
 				is_deleted: false,
 				created_at: get_iso_date(),
 				updated_at: get_iso_date(),
@@ -161,6 +162,7 @@ impl<'a> QuestionsRepository<'a> {
 				image_url: option.image_url.clone(),
 				is_correct: option.is_correct,
 				is_deleted: false,
+				points: option.points,
 				created_at: get_iso_date(),
 				updated_at: get_iso_date(),
 			};

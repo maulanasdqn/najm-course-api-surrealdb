@@ -25,6 +25,7 @@ fn generate_option(label: &str, correct: bool) -> OptionsCreateRequestDto {
 	OptionsCreateRequestDto {
 		label: label.into(),
 		image_url: None,
+		points: Some(10),
 		is_correct: correct,
 	}
 }
@@ -109,12 +110,14 @@ async fn test_put_update_question_should_return_200() {
 				label: "Updated A".into(),
 				image_url: None,
 				is_correct: false,
+				points: Some(10),
 			},
 			OptionsUpdateRequestDto {
 				id: "".into(),
 				label: "Updated B".into(),
 				image_url: None,
 				is_correct: true,
+				points: Some(20),
 			},
 		],
 	};
@@ -229,6 +232,7 @@ async fn test_create_question_should_fail_if_option_label_empty() {
 			options: vec![OptionsCreateRequestDto {
 				label: "".into(),
 				image_url: None,
+				points: Some(10),
 				is_correct: true,
 			}],
 		}),
@@ -252,6 +256,7 @@ async fn test_update_question_should_fail_if_not_found() {
 			label: "Updated A".into(),
 			image_url: None,
 			is_correct: false,
+			points: Some(10),
 		}],
 	};
 	let res = authorized(

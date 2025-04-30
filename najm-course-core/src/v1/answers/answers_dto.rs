@@ -13,6 +13,10 @@ pub struct AnswersCreateRequestDto {
 	pub test_id: String,
 
 	#[validate(length(min = 1))]
+	#[schema(example = "uuid")]
+	pub session_id: String,
+
+	#[validate(length(min = 1))]
 	pub answers: Vec<AnswerEntryDto>,
 }
 
@@ -32,6 +36,7 @@ pub struct OptionsItemAnswersDto {
 	pub id: String,
 	pub label: String,
 	pub is_correct: bool,
+	pub points: Option<i32>,
 	pub is_user_selected: bool,
 	pub image_url: Option<String>,
 	pub created_at: String,
@@ -54,6 +59,7 @@ pub struct QuestionsItemAnswersDto {
 pub struct TestsItemAnswersDto {
 	pub id: String,
 	pub name: String,
+	pub score: i32,
 	pub questions: Vec<QuestionsItemAnswersDto>,
 	pub created_at: String,
 	pub updated_at: String,

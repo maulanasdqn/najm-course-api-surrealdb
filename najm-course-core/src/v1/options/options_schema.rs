@@ -5,6 +5,7 @@ use surrealdb::sql::Thing;
 pub struct OptionsSchema {
 	pub id: Thing,
 	pub label: String,
+	pub points: Option<i32>,
 	pub image_url: Option<String>,
 	pub is_correct: bool,
 	pub is_deleted: bool,

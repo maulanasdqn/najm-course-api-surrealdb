@@ -14,6 +14,7 @@ fn generate_option(label: &str, correct: bool) -> OptionsCreateRequestDto {
 		label: label.into(),
 		image_url: None,
 		is_correct: correct,
+		points: Some(10),
 	}
 }
 
@@ -89,12 +90,14 @@ async fn test_update_question_should_succeed() {
 				label: "Updated A".into(),
 				image_url: None,
 				is_correct: false,
+				points: Some(10),
 			},
 			OptionsUpdateRequestDto {
 				id: question.options[1].id.clone(),
 				label: "Updated B".into(),
 				image_url: None,
 				is_correct: true,
+				points: Some(20),
 			},
 		],
 	};

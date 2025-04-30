@@ -65,6 +65,7 @@ async fn test_get_session_list_should_return_200() {
 		None,
 	)
 	.await;
+	dbg!(res.text());
 	assert_eq!(res.status_code(), 200);
 }
 

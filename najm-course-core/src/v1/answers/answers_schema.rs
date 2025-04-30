@@ -6,6 +6,7 @@ pub struct AnswersSchema {
 	pub id: Thing,
 	pub user: Thing,
 	pub test: Thing,
+	pub session: Thing,
 	pub question: Thing,
 	pub option: Thing,
 	pub is_deleted: bool,

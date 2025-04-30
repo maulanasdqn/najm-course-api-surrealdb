@@ -12,6 +12,7 @@ fn generate_option(label: &str, correct: bool) -> OptionsCreateRequestDto {
 	OptionsCreateRequestDto {
 		label: label.into(),
 		image_url: None,
+		points: Some(10),
 		is_correct: correct,
 	}
 }
