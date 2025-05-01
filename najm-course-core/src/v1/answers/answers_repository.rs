@@ -40,12 +40,14 @@ impl<'a> AnswersRepository<'a> {
 		let db = &self.state.surrealdb_ws;
 		let question_repo = QuestionsRepository::new(&self.state);
 		let session_repo = SessionsRepository::new(&self.state);
+
 		let session = session_repo.query_session_by_id(session_id).await?;
-		let test: Vec<_> = session
+		let test = session
 			.tests
 			.into_iter()
-			.filter(|t| t.test.id == test_id)
-			.collect();
+			.find(|t| t.test.id == test_id)
+			.ok_or_else(|| Error::msg("Test not found in session"))?;
+
 		let answers: Vec<AnswersSchema> = db
 			.query(&format!(
 				"SELECT * FROM app_answers WHERE test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ AND session = app_sessions:⟨{}⟩ AND is_deleted = false",
@@ -53,6 +55,7 @@ impl<'a> AnswersRepository<'a> {
 			))
 			.await?
 			.take(0)?;
+
 		let answer_id = answers
 			.get(0)
 			.ok_or_else(|| Error::msg("No answers found"))?
@@ -60,11 +63,14 @@ impl<'a> AnswersRepository<'a> {
 			.id
 			.to_raw()
 			.clone();
-		let mut questions_dto = vec![];
+
+		let mut questions_dto = Vec::new();
+
 		for answer in &answers {
 			let question_id = answer.question.id.to_raw();
 			let selected_option_id = answer.option.id.to_raw();
 			let question = question_repo.query_question_by_id(&question_id).await?;
+
 			let options_dto = question
 				.options
 				.iter()
@@ -73,12 +79,13 @@ impl<'a> AnswersRepository<'a> {
 					label: opt.label.clone(),
 					is_user_selected: opt.id == selected_option_id,
 					points: opt.points,
-					is_correct: opt.is_correct.clone().unwrap_or(false),
+					is_correct: opt.is_correct.unwrap_or(false),
 					image_url: opt.image_url.clone(),
 					created_at: opt.created_at.clone(),
 					updated_at: opt.updated_at.clone(),
 				})
 				.collect();
+
 			questions_dto.push(QuestionsItemAnswersDto {
 				id: question.id,
 				question: question.question,
@@ -90,7 +97,8 @@ impl<'a> AnswersRepository<'a> {
 				updated_at: question.updated_at,
 			});
 		}
-		let test_response = test[0].test.clone();
+
+		let test_response = test.test;
 		let mut score = 0;
 
 		if session.category == "Akademik" {
@@ -98,8 +106,9 @@ impl<'a> AnswersRepository<'a> {
 				.iter()
 				.filter(|q| q.options.iter().any(|o| o.is_user_selected && o.is_correct))
 				.count();
-			let raw_score = correct_count as f64 * test[0].multiplier as f64;
-			score = (test[0].weight as f64 / 100.0 * raw_score).round() as i32;
+
+			let raw_score = correct_count as f64 * test.multiplier as f64;
+			score = (test.weight as f64 / 100.0 * raw_score).round() as i32;
 		}
 
 		if session.category == "Psikologi" {
@@ -109,6 +118,7 @@ impl<'a> AnswersRepository<'a> {
 				.filter(|o| o.is_user_selected)
 				.map(|o| o.points.unwrap_or(0))
 				.sum();
+
 			score = ((total_points as f64 / 500.0) * 100.0).round() as i32;
 		}
 

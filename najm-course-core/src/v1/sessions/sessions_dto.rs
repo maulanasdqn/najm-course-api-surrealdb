@@ -148,7 +148,7 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 					.collect();
 
 				let test_item = TestsItemDto {
-					id: test.id.id.to_string(),
+					id: test.id.id.to_raw(),
 					name: test.name,
 					questions,
 					created_at: test.created_at,

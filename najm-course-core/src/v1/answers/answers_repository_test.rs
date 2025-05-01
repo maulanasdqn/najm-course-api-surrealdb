@@ -120,6 +120,7 @@ async fn test_query_by_id_should_return_data() {
 		),
 	};
 	let result = repo.query_by_id(&answer_id).await;
+	dbg!(&result);
 	assert!(result.is_ok());
 }
 
