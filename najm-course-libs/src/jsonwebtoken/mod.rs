@@ -17,7 +17,7 @@ pub fn encode_access_token(sub: String) -> Result<String, StatusCode> {
 	let env = Env::new();
 	let secret: String = env.access_token_secret;
 	let now = Utc::now();
-	let expire: TimeDelta = Duration::days(1);
+	let expire: TimeDelta = Duration::hours(10);
 	let exp: usize = (now + expire).timestamp() as usize;
 	let iat: usize = now.timestamp() as usize;
 	let claim = Claims { iat, exp, sub };
