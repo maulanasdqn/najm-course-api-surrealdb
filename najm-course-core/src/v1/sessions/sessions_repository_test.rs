@@ -34,7 +34,7 @@ async fn test_create_and_get_session() -> Result<()> {
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
 			test_id: test_id.to_string(),
-			weight: 50,
+			weight: 2.5,
 			multiplier: 1.2,
 			start_date: "2025-01-01T00:00:00Z".to_string(),
 			end_date: "2025-01-10T00:00:00Z".to_string(),
@@ -59,7 +59,7 @@ async fn test_update_session() -> Result<()> {
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
 			test_id: "mock_test_2".to_string(),
-			weight: 60,
+			weight: 2.5,
 			multiplier: 1.0,
 			start_date: "2025-02-01T00:00:00Z".to_string(),
 			end_date: "2025-02-10T00:00:00Z".to_string(),
@@ -74,7 +74,7 @@ async fn test_update_session() -> Result<()> {
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
 			test_id: "mock_test_2".to_string(),
-			weight: 70,
+			weight: 2.5,
 			multiplier: 1.5,
 			start_date: "2025-02-05T00:00:00Z".to_string(),
 			end_date: "2025-02-15T00:00:00Z".to_string(),
@@ -100,7 +100,7 @@ async fn test_delete_session() -> Result<()> {
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
 			test_id: "mock_test_3".to_string(),
-			weight: 40,
+			weight: 2.5,
 			multiplier: 0.9,
 			start_date: "2025-03-01T00:00:00Z".to_string(),
 			end_date: "2025-03-10T00:00:00Z".to_string(),
@@ -140,7 +140,7 @@ async fn test_update_non_existing_session_should_fail() {
 		student_type: "SMA".into(),
 		tests: vec![TestSessionsDto {
 			test_id: "mock_test_x".into(),
-			weight: 30,
+			weight: 2.7,
 			multiplier: 1.0,
 			start_date: "2025-01-01T00:00:00Z".into(),
 			end_date: "2025-01-10T00:00:00Z".into(),
@@ -166,7 +166,7 @@ async fn test_create_session_with_invalid_test_ref_should_fail() {
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
 			test_id: "non_existing_test_id".to_string(),
-			weight: 50,
+			weight: 2.6,
 			multiplier: 1.0,
 			start_date: "2025-01-01T00:00:00Z".to_string(),
 			end_date: "2025-01-10T00:00:00Z".to_string(),
@@ -201,7 +201,7 @@ async fn test_update_session_with_empty_tests_should_fail() {
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
 			test_id: "mock_test_update".to_string(),
-			weight: 50,
+			weight: 2.5,
 			multiplier: 1.0,
 			start_date: "2025-04-01T00:00:00Z".to_string(),
 			end_date: "2025-04-10T00:00:00Z".to_string(),
@@ -263,7 +263,7 @@ async fn test_delete_session_twice_should_fail() -> Result<()> {
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
 			test_id: test_id.to_string(),
-			weight: 10,
+			weight: 2.5,
 			multiplier: 1.0,
 			start_date: "2025-05-01T00:00:00Z".to_string(),
 			end_date: "2025-05-10T00:00:00Z".to_string(),

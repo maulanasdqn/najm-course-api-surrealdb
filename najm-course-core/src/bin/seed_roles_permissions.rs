@@ -14,7 +14,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 	db.use_ns(env.surrealdb_namespace)
 		.use_db(env.surrealdb_dbname)
 		.await?;
-	let all_permission_ids = vec![
+	let admin_permissions = vec![
 		"023e2dfe-93c3-4008-94a8-b5dff403f73b",
 		"0269ed71-0ae0-4c43-ad29-e3d861d8f9a0",
 		"299cb4d5-6556-4cc9-b6c1-32e6d31e0f9b",
@@ -41,17 +41,42 @@ async fn main() -> Result<(), Box<dyn Error>> {
 		"cab6aff5-e9c6-4ed3-afe9-93ef927e1f92",
 		"dad435cf-042c-41bd-a946-cea61ed2ffbc",
 		"f768aff5-8011-4439-b901-d8793c60d841",
+		"76046fc3-ea45-43de-9e32-7dff9622019e",
+		"05940747-2c2f-4ee2-a280-72557c508686",
 	];
+
+	let user_permissions = vec![
+		"319ee593-ff0a-4f29-bbaf-9feb3174a3a6",
+		"cab6aff5-e9c6-4ed3-afe9-93ef927e1f92",
+		"76046fc3-ea45-43de-9e32-7dff9622019e",
+		"7d4b1379-4960-416a-b045-98cd82c0cac9",
+		"05940747-2c2f-4ee2-a280-72557c508686",
+	];
+
 	let admin_role_id = "f6b03f25-e416-4893-ac88-caaa690afb07";
-	let permission_refs: Vec<_> = all_permission_ids
+	let student_role_id = "5713cb37-dc02-4e87-8048-d7a41d352059";
+
+	let permission_refs_admin: Vec<_> = admin_permissions
 		.into_iter()
 		.map(|perm_id| make_thing("app_permissions", perm_id))
 		.collect();
-	db.query("UPDATE type::thing('app_roles', $role_id) SET permissions = $permissions, updated_at = $updated_at")
+
+	let permission_refs_student: Vec<_> = user_permissions
+		.into_iter()
+		.map(|perm_id| make_thing("app_permissions", perm_id))
+		.collect();
+
+	db.query("UPDATE type::thing('app_roles', $role_id) SET permissions = $permissions, updated_at = $updated_at WHERE is_deleted = false")
 		.bind(("role_id", admin_role_id))
-		.bind(("permissions", permission_refs))
+		.bind(("permissions", permission_refs_admin))
 		.bind(("updated_at", get_iso_date()))
 		.await?;
-	println!("✅ Semua permissions berhasil ditambahkan ke role Admin!");
+
+	db.query("UPDATE type::thing('app_roles', $role_id) SET permissions = $permissions, updated_at = $updated_at WHERE is_deleted = false")
+		.bind(("role_id", student_role_id))
+		.bind(("permissions", permission_refs_student))
+		.bind(("updated_at", get_iso_date()))
+		.await?;
+	println!("✅ Semua permissions berhasil ditambahkan ke masing-masing role!");
 	Ok(())
 }

@@ -10,7 +10,7 @@ pub struct TestSessionsDto {
 	pub test_id: String,
 
 	#[schema(example = 50)]
-	pub weight: u32,
+	pub weight: f32,
 
 	#[schema(example = 1.25)]
 	pub multiplier: f32,
@@ -70,7 +70,7 @@ pub struct SessionsUpdateRequestDto {
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct TestSessionsItemDto {
 	pub test: TestsItemDto,
-	pub weight: u32,
+	pub weight: f32,
 	pub multiplier: f32,
 	pub start_date: String,
 	pub end_date: String,

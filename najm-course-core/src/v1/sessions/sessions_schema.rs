@@ -5,7 +5,7 @@ use surrealdb::sql::Thing;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TestSessionsSchema {
 	pub test: Thing,
-	pub weight: u32,
+	pub weight: f32,
 	pub multiplier: f32,
 	pub start_date: String,
 	pub end_date: String,
@@ -14,7 +14,7 @@ pub struct TestSessionsSchema {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TestSessionsDetailSchema {
 	pub test: TestsDetailSchema,
-	pub weight: u32,
+	pub weight: f32,
 	pub multiplier: f32,
 	pub start_date: String,
 	pub end_date: String,

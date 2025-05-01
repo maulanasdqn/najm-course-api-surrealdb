@@ -25,7 +25,7 @@ fn generate_payload(name: &str) -> SessionsCreateRequestDto {
 		student_type: "SMA".into(),
 		tests: vec![TestSessionsDto {
 			test_id: "mock_test_999".into(),
-			weight: 50,
+			weight: 2.5,
 			multiplier: 1.0,
 			start_date: "2025-01-01T00:00:00Z".into(),
 			end_date: "2025-01-10T00:00:00Z".into(),
@@ -108,7 +108,7 @@ async fn test_update_session_should_return_200() {
 		student_type: "SMA".into(),
 		tests: vec![TestSessionsDto {
 			test_id: "mock_test_update".into(),
-			weight: 75,
+			weight: 2.5,
 			multiplier: 1.25,
 			start_date: "2025-02-01T00:00:00Z".into(),
 			end_date: "2025-02-10T00:00:00Z".into(),
