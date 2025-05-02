@@ -57,7 +57,7 @@ where
 		.bind(("per_page", per_page))
 		.bind(("start", start));
 	let raw: Vec<T> = query_exec.await?.take(0)?;
-	let mut count_sql = format!("SELECT count() FROM {}", table);
+	let mut count_sql = format!("SELECT count() AS count FROM {} GROUP ALL", table);
 	if !conditions.is_empty() {
 		count_sql.push_str(" WHERE ");
 		count_sql.push_str(&conditions.join(" AND "));
