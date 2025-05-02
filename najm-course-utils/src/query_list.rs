@@ -57,11 +57,12 @@ where
 		.bind(("per_page", per_page))
 		.bind(("start", start));
 	let raw: Vec<T> = query_exec.await?.take(0)?;
-	let mut count_sql = format!("SELECT count() AS count FROM {} GROUP ALL", table);
+	let mut count_sql = format!("SELECT count() AS count FROM {}", table);
 	if !conditions.is_empty() {
 		count_sql.push_str(" WHERE ");
 		count_sql.push_str(&conditions.join(" AND "));
 	}
+	count_sql.push_str(" GROUP ALL");
 	let mut count_query = db.query(count_sql);
 	if let Some(search) = &meta.search {
 		if !search.is_empty() {
@@ -73,7 +74,6 @@ where
 	}
 	let count_result: Vec<CountResult> = count_query.await?.take(0)?;
 	let total = count_result.first().map(|c| c.count);
-
 	let meta = MetaResponseDto {
 		page: Some(page),
 		per_page: Some(per_page),
