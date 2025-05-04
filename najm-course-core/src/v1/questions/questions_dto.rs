@@ -8,15 +8,10 @@ use validator::Validate;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct QuestionsCreateRequestDto {
-	#[validate(length(min = 1, message = "Question must not be empty"))]
-	pub question: String,
-
-	#[validate(length(min = 1, message = "Discussion must not be empty"))]
-	pub discussion: String,
-
+	pub question: Option<String>,
+	pub discussion: Option<String>,
 	pub question_image_url: Option<String>,
 	pub discussion_image_url: Option<String>,
-
 	#[validate(length(min = 1, message = "At least one option is required"))]
 	#[validate]
 	pub options: Vec<OptionsCreateRequestDto>,
@@ -26,16 +21,10 @@ pub struct QuestionsCreateRequestDto {
 pub struct QuestionsUpdateRequestDto {
 	#[validate(length(min = 1, message = "Question ID is required"))]
 	pub id: String,
-
-	#[validate(length(min = 1, message = "Question must not be empty"))]
-	pub question: String,
-
-	#[validate(length(min = 1, message = "Discussion must not be empty"))]
-	pub discussion: String,
-
+	pub question: Option<String>,
+	pub discussion: Option<String>,
 	pub question_image_url: Option<String>,
 	pub discussion_image_url: Option<String>,
-
 	#[validate(length(min = 1, message = "At least one option is required"))]
 	#[validate]
 	pub options: Vec<OptionsUpdateRequestDto>,
@@ -70,8 +59,8 @@ impl From<QuestionsSchema> for QuestionsResponseListDto {
 		};
 		QuestionsResponseListDto {
 			id,
-			question: value.question,
-			discussion: value.discussion,
+			question: value.question.unwrap_or("".into()),
+			discussion: value.discussion.unwrap_or("".into()),
 			created_at: value.created_at,
 			updated_at: value.updated_at,
 		}
@@ -96,8 +85,8 @@ impl QuestionsItemDto {
 
 		Self {
 			id,
-			question: value.question,
-			discussion: value.discussion,
+			question: value.question.unwrap_or("".into()),
+			discussion: value.discussion.unwrap_or("".into()),
 			question_image_url: value.question_image_url,
 			discussion_image_url: value.discussion_image_url,
 			options: mapped_options,

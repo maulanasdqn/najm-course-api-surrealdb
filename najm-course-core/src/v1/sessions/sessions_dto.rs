@@ -118,7 +118,7 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 								.filter_map(|o_opt| {
 									o_opt.map(|o| OptionsItemDto {
 										id: o.id.id.to_raw(),
-										label: o.label,
+										label: o.label.unwrap_or("".into()),
 										is_correct: None,
 										points: None,
 										image_url: o.image_url,
@@ -130,8 +130,8 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 
 							QuestionsItemDto {
 								id: q.id.id.to_raw(),
-								question: q.question,
-								discussion: q.discussion,
+								question: q.question.unwrap_or("".into()),
+								discussion: q.discussion.unwrap_or("".into()),
 								question_image_url: q.question_image_url,
 								discussion_image_url: q.discussion_image_url,
 								options,

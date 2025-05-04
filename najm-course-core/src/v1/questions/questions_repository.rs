@@ -87,13 +87,7 @@ impl<'a> QuestionsRepository<'a> {
 		if payload.options.is_empty() {
 			bail!("Options must not be empty");
 		}
-		if payload
-			.options
-			.iter()
-			.any(|opt| opt.label.trim().is_empty())
-		{
-			bail!("Each option must have a non-empty label");
-		}
+
 		let db = &self.state.surrealdb_ws;
 		let question_id = Uuid::new_v4().to_string();
 		let mut option_things = Vec::new();
@@ -143,9 +137,7 @@ impl<'a> QuestionsRepository<'a> {
 		if data.options.is_empty() {
 			bail!("Options must not be empty");
 		}
-		if data.options.iter().any(|opt| opt.label.trim().is_empty()) {
-			bail!("Each option must have a non-empty label");
-		}
+
 		let db = &self.state.surrealdb_ws;
 		let question_thing_id = make_thing(&ResourceEnum::Questions.to_string(), &id);
 		let existing = self.query_raw_question_by_id(&id).await?;

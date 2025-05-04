@@ -63,8 +63,11 @@ impl<'a> OptionsRepository<'a> {
 
 	pub async fn query_option_by_label(
 		&self,
-		label: String,
+		label: Option<String>,
 	) -> Result<OptionsItemDto> {
+		if !label.is_some() {
+			bail!("Label is required");
+		}
 		let db = &self.state.surrealdb_ws;
 		let sql = format!(
 			"SELECT * FROM {} WHERE label = $label AND is_deleted = false LIMIT 1",
@@ -78,7 +81,7 @@ impl<'a> OptionsRepository<'a> {
 		};
 		Ok(OptionsItemDto {
 			id: extract_id(&option.id),
-			label: option.label,
+			label: option.label.unwrap_or("".into()),
 			image_url: option.image_url,
 			is_correct: None,
 			points: option.points,
@@ -101,7 +104,7 @@ impl<'a> OptionsRepository<'a> {
 		};
 		Ok(OptionsItemDto {
 			id: extract_id(&option.id),
-			label: option.label,
+			label: option.label.unwrap_or("".into()),
 			image_url: option.image_url,
 			is_correct: None,
 			points: option.points,
@@ -131,7 +134,7 @@ impl<'a> OptionsRepository<'a> {
 			.create((&ResourceEnum::Options.to_string(), option_id))
 			.content(option)
 			.await?;
-		Ok("Option created successfully".to_string()) // ✅ fix: pakai String
+		Ok("Option created successfully".to_string())
 	}
 
 	pub async fn query_update_option(

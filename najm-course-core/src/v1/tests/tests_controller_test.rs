@@ -22,7 +22,7 @@ fn create_test_app(state: AppState) -> TestServer {
 
 fn generate_option(label: &str, correct: bool) -> OptionsCreateRequestDto {
 	OptionsCreateRequestDto {
-		label: label.into(),
+		label: Some(label.into()),
 		image_url: None,
 		points: Some(10),
 		is_correct: correct,
@@ -31,8 +31,8 @@ fn generate_option(label: &str, correct: bool) -> OptionsCreateRequestDto {
 
 fn generate_question_payload() -> QuestionsCreateRequestDto {
 	QuestionsCreateRequestDto {
-		question: format!("Question {}", Uuid::new_v4()),
-		discussion: "Discuss here".into(),
+		question: Some(format!("Question {}", Uuid::new_v4())),
+		discussion: Some("Discuss here".into()),
 		question_image_url: None,
 		discussion_image_url: None,
 		options: vec![generate_option("A", false), generate_option("B", true)],
@@ -146,27 +146,6 @@ async fn test_create_test_should_fail_if_no_questions() {
 	let payload = TestsCreateRequestDto {
 		name: "Test Without Questions".into(),
 		questions: vec![],
-	};
-	let res = authorized(
-		&server,
-		"POST",
-		"/v1/tests/create",
-		vec![&PermissionsEnum::CreateTests.to_string()],
-		Some(&payload),
-	)
-	.await;
-	assert_eq!(res.status_code(), 400);
-}
-
-#[tokio::test]
-async fn test_create_test_should_fail_if_option_label_empty() {
-	let state = create_mock_app_state().await;
-	let server = create_test_app(state);
-	let mut question = generate_question_payload();
-	question.options[0].label = "".into();
-	let payload = TestsCreateRequestDto {
-		name: "Invalid Option Label".into(),
-		questions: vec![question],
 	};
 	let res = authorized(
 		&server,
@@ -373,27 +352,6 @@ async fn test_update_test_should_fail_if_missing_question_id() {
 	)
 	.await;
 	assert_eq!(res.status_code(), 422);
-}
-
-#[tokio::test]
-async fn test_create_test_should_fail_if_question_text_empty() {
-	let state = create_mock_app_state().await;
-	let server = create_test_app(state);
-	let mut question = generate_question_payload();
-	question.question = "".into();
-	let payload = TestsCreateRequestDto {
-		name: "Empty Question Text".into(),
-		questions: vec![question],
-	};
-	let res = authorized(
-		&server,
-		"POST",
-		"/v1/tests/create",
-		vec![&PermissionsEnum::CreateTests.to_string()],
-		Some(&payload),
-	)
-	.await;
-	assert_eq!(res.status_code(), 400);
 }
 
 #[tokio::test]

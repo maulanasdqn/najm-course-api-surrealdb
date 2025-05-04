@@ -6,8 +6,7 @@ use super::OptionsSchema;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct OptionsCreateRequestDto {
-	#[validate(length(min = 1, message = "Label must not be empty"))]
-	pub label: String,
+	pub label: Option<String>,
 	pub image_url: Option<String>,
 	pub is_correct: bool,
 	pub points: Option<i32>,
@@ -16,8 +15,7 @@ pub struct OptionsCreateRequestDto {
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct OptionsUpdateRequestDto {
 	pub id: String,
-	#[validate(length(min = 1, message = "Label must not be empty"))]
-	pub label: String,
+	pub label: Option<String>,
 	pub image_url: Option<String>,
 	pub is_correct: bool,
 	pub points: Option<i32>,
@@ -51,7 +49,7 @@ impl From<OptionsSchema> for OptionsResponseListDto {
 		};
 		OptionsResponseListDto {
 			id,
-			label: value.label,
+			label: value.label.unwrap_or("".into()),
 			image_url: value.image_url,
 			created_at: value.created_at,
 			updated_at: value.updated_at,
@@ -66,7 +64,7 @@ impl From<OptionsSchema> for OptionsItemDto {
 				surrealdb::sql::Id::String(s) => s,
 				_ => "".to_string(),
 			},
-			label: o.label,
+			label: o.label.unwrap_or("".into()),
 			is_correct: Some(o.is_correct),
 			points: o.points,
 			image_url: o.image_url,

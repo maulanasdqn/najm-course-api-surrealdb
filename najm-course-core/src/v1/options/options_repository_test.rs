@@ -5,7 +5,7 @@ use surrealdb::Uuid;
 
 fn generate_payload() -> OptionsCreateRequestDto {
 	OptionsCreateRequestDto {
-		label: format!("Option {}", Uuid::new_v4()),
+		label: Some(format!("Option {}", Uuid::new_v4())),
 		image_url: Some("https://example.com/image.png".into()),
 		is_correct: true,
 		points: Some(10),
@@ -57,7 +57,9 @@ async fn test_query_option_by_label_should_return_data() {
 async fn test_query_option_by_label_should_fail_if_not_found() {
 	let state = create_mock_app_state().await;
 	let repo = OptionsRepository::new(&state);
-	let result = repo.query_option_by_label("not-exist-label".into()).await;
+	let result = repo
+		.query_option_by_label(Some("not-exist-label".into()))
+		.await;
 	assert!(result.is_err());
 }
 
@@ -95,7 +97,7 @@ async fn test_query_update_option_should_update_existing_data() {
 		.unwrap();
 	let update = OptionsUpdateRequestDto {
 		id: "ignored".into(),
-		label: format!("Updated {}", payload.label),
+		label: Some(format!("Updated {}", payload.label.unwrap_or("".into()))),
 		image_url: Some("https://example.com/new.png".into()),
 		is_correct: false,
 		points: Some(20),
@@ -117,7 +119,7 @@ async fn test_query_update_option_should_fail_if_deleted() {
 	let _ = repo.query_delete_option(item.id.clone()).await.unwrap();
 	let update = OptionsUpdateRequestDto {
 		id: item.id.clone(),
-		label: format!("Updated {}", payload.label),
+		label: Some(format!("Updated {}", payload.label.unwrap_or("".into()))),
 		image_url: Some("https://example.com/new.png".into()),
 		is_correct: false,
 		points: Some(20),
@@ -167,7 +169,7 @@ async fn test_query_create_option_should_allow_empty_image_url() {
 	let state = create_mock_app_state().await;
 	let repo = OptionsRepository::new(&state);
 	let payload = OptionsCreateRequestDto {
-		label: format!("Option {}", Uuid::new_v4()),
+		label: Some(format!("Option {}", Uuid::new_v4())),
 		image_url: None,
 		is_correct: true,
 		points: Some(10),
@@ -182,7 +184,7 @@ async fn test_query_update_option_should_fail_if_id_not_found() {
 	let repo = OptionsRepository::new(&state);
 	let update = OptionsUpdateRequestDto {
 		id: "non-existent-id".into(),
-		label: "Should fail".into(),
+		label: Some("Should fail".into()),
 		image_url: None,
 		is_correct: false,
 		points: Some(20),
@@ -203,7 +205,7 @@ async fn test_query_option_list_should_respect_search_filter() {
 	let label = format!("UniqueSearchOption-{}", Uuid::new_v4());
 	let _ = repo
 		.query_create_option(OptionsCreateRequestDto {
-			label: label.clone(),
+			label: Some(label.clone()),
 			image_url: None,
 			is_correct: true,
 			points: Some(10),

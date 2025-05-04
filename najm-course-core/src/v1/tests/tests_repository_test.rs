@@ -10,7 +10,7 @@ use surrealdb::Uuid;
 
 fn generate_option(label: &str, correct: bool) -> OptionsCreateRequestDto {
 	OptionsCreateRequestDto {
-		label: label.into(),
+		label: Some(label.into()),
 		image_url: None,
 		points: Some(10),
 		is_correct: correct,
@@ -19,8 +19,8 @@ fn generate_option(label: &str, correct: bool) -> OptionsCreateRequestDto {
 
 fn generate_question_payload() -> QuestionsCreateRequestDto {
 	QuestionsCreateRequestDto {
-		question: format!("Question {}", Uuid::new_v4()),
-		discussion: "Discussion".into(),
+		question: Some(format!("Question {}", Uuid::new_v4())),
+		discussion: Some("Discussion".into()),
 		question_image_url: None,
 		discussion_image_url: None,
 		options: vec![generate_option("A", false), generate_option("B", true)],
@@ -50,20 +50,6 @@ async fn test_query_create_test_should_fail_if_no_questions() {
 	let payload = TestsCreateRequestDto {
 		name: "Empty".into(),
 		questions: vec![],
-	};
-	let res = repo.query_create_test(payload).await;
-	assert!(res.is_err());
-}
-
-#[tokio::test]
-async fn test_query_create_test_should_fail_if_option_label_empty() {
-	let state = create_mock_app_state().await;
-	let repo = TestsRepository::new(&state);
-	let mut question = generate_question_payload();
-	question.options[0].label = "".into();
-	let payload = TestsCreateRequestDto {
-		name: "Invalid Option".into(),
-		questions: vec![question],
 	};
 	let res = repo.query_create_test(payload).await;
 	assert!(res.is_err());
@@ -100,20 +86,6 @@ async fn test_query_test_by_id_should_return_test_with_questions() {
 	assert_eq!(test.name, payload.name);
 	assert!(!test.questions.is_empty());
 	assert!(test.questions.iter().all(|q| !q.options.is_empty()));
-}
-
-#[tokio::test]
-async fn test_query_create_test_should_fail_if_question_text_empty() {
-	let state = create_mock_app_state().await;
-	let repo = TestsRepository::new(&state);
-	let mut question = generate_question_payload();
-	question.question = "".into();
-	let payload = TestsCreateRequestDto {
-		name: "Empty Question Text".into(),
-		questions: vec![question],
-	};
-	let res = repo.query_create_test(payload).await;
-	assert!(res.is_err());
 }
 
 #[tokio::test]

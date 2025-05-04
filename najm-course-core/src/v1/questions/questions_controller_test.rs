@@ -23,7 +23,7 @@ fn create_test_app(state: AppState) -> TestServer {
 
 fn generate_option(label: &str, correct: bool) -> OptionsCreateRequestDto {
 	OptionsCreateRequestDto {
-		label: label.into(),
+		label: Some(label.into()),
 		image_url: None,
 		points: Some(10),
 		is_correct: correct,
@@ -32,8 +32,8 @@ fn generate_option(label: &str, correct: bool) -> OptionsCreateRequestDto {
 
 fn generate_question_payload() -> QuestionsCreateRequestDto {
 	QuestionsCreateRequestDto {
-		question: format!("Question {}", Uuid::new_v4()),
-		discussion: "Discussion here".into(),
+		question: Some(format!("Question {}", Uuid::new_v4())),
+		discussion: Some("Discussion here".into()),
 		question_image_url: None,
 		discussion_image_url: None,
 		options: vec![generate_option("A", false), generate_option("B", true)],
@@ -100,21 +100,21 @@ async fn test_put_update_question_should_return_200() {
 
 	let update = QuestionsUpdateRequestDto {
 		id: id.clone(),
-		question: format!("Updated {}", payload.question),
-		discussion: "Updated discussion".into(),
+		question: Some(format!("Updated {}", payload.question.unwrap_or("".into()))),
+		discussion: Some("Updated discussion".into()),
 		question_image_url: None,
 		discussion_image_url: None,
 		options: vec![
 			OptionsUpdateRequestDto {
 				id: "".into(),
-				label: "Updated A".into(),
+				label: Some("Updated A".into()),
 				image_url: None,
 				is_correct: false,
 				points: Some(10),
 			},
 			OptionsUpdateRequestDto {
 				id: "".into(),
-				label: "Updated B".into(),
+				label: Some("Updated B".into()),
 				image_url: None,
 				is_correct: true,
 				points: Some(20),
@@ -162,8 +162,8 @@ async fn test_create_question_should_fail_if_empty_question() {
 		"/v1/questions/create",
 		vec![&PermissionsEnum::CreateQuestions.to_string()],
 		Some(&QuestionsCreateRequestDto {
-			question: "".into(),
-			discussion: "Valid".into(),
+			question: Some("".into()),
+			discussion: Some("Valid".into()),
 			question_image_url: None,
 			discussion_image_url: None,
 			options: vec![],
@@ -183,8 +183,8 @@ async fn test_create_question_should_fail_if_empty_discussion() {
 		"/v1/questions/create",
 		vec![&PermissionsEnum::CreateQuestions.to_string()],
 		Some(&QuestionsCreateRequestDto {
-			question: "Valid".into(),
-			discussion: "".into(),
+			question: Some("Valid".into()),
+			discussion: Some("".into()),
 			question_image_url: None,
 			discussion_image_url: None,
 			options: vec![],
@@ -204,37 +204,11 @@ async fn test_create_question_should_fail_if_empty_options() {
 		"/v1/questions/create",
 		vec![&PermissionsEnum::CreateQuestions.to_string()],
 		Some(&QuestionsCreateRequestDto {
-			question: "Valid".into(),
-			discussion: "Valid".into(),
+			question: Some("Valid".into()),
+			discussion: Some("Valid".into()),
 			question_image_url: None,
 			discussion_image_url: None,
 			options: vec![],
-		}),
-	)
-	.await;
-	assert_eq!(res.status_code(), 400);
-}
-
-#[tokio::test]
-async fn test_create_question_should_fail_if_option_label_empty() {
-	let state = create_mock_app_state().await;
-	let server = create_test_app(state);
-	let res = authorized(
-		&server,
-		"POST",
-		"/v1/questions/create",
-		vec![&PermissionsEnum::CreateQuestions.to_string()],
-		Some(&QuestionsCreateRequestDto {
-			question: "Valid".into(),
-			discussion: "Valid".into(),
-			question_image_url: None,
-			discussion_image_url: None,
-			options: vec![OptionsCreateRequestDto {
-				label: "".into(),
-				image_url: None,
-				points: Some(10),
-				is_correct: true,
-			}],
 		}),
 	)
 	.await;
@@ -247,13 +221,13 @@ async fn test_update_question_should_fail_if_not_found() {
 	let server = create_test_app(state);
 	let update = QuestionsUpdateRequestDto {
 		id: "non-existent-id".into(),
-		question: "Updated".into(),
-		discussion: "Updated".into(),
+		question: Some("Updated".into()),
+		discussion: Some("Updated".into()),
 		question_image_url: None,
 		discussion_image_url: None,
 		options: vec![OptionsUpdateRequestDto {
 			id: "".into(),
-			label: "Updated A".into(),
+			label: Some("Updated A".into()),
 			image_url: None,
 			is_correct: false,
 			points: Some(10),

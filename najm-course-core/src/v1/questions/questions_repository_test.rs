@@ -11,7 +11,7 @@ use surrealdb::Uuid;
 
 fn generate_option(label: &str, correct: bool) -> OptionsCreateRequestDto {
 	OptionsCreateRequestDto {
-		label: label.into(),
+		label: Some(label.into()),
 		image_url: None,
 		is_correct: correct,
 		points: Some(10),
@@ -20,8 +20,8 @@ fn generate_option(label: &str, correct: bool) -> OptionsCreateRequestDto {
 
 fn generate_question_payload() -> QuestionsCreateRequestDto {
 	QuestionsCreateRequestDto {
-		question: format!("Question {}", Uuid::new_v4()),
-		discussion: "This is a discussion".into(),
+		question: Some(format!("Question {}", Uuid::new_v4())),
+		discussion: Some("This is a discussion".into()),
 		question_image_url: None,
 		discussion_image_url: None,
 		options: vec![
@@ -80,21 +80,21 @@ async fn test_update_question_should_succeed() {
 	let question = question.expect("Question not ready with options");
 	let update = QuestionsUpdateRequestDto {
 		id: question.id.clone(),
-		question: format!("Updated {}", payload.question),
-		discussion: "Updated discussion".into(),
+		question: Some(format!("Updated {}", payload.question.unwrap_or("".into()))),
+		discussion: Some("Updated discussion".into()),
 		question_image_url: None,
 		discussion_image_url: None,
 		options: vec![
 			OptionsUpdateRequestDto {
 				id: question.options[0].id.clone(),
-				label: "Updated A".into(),
+				label: Some("Updated A".into()),
 				image_url: None,
 				is_correct: false,
 				points: Some(10),
 			},
 			OptionsUpdateRequestDto {
 				id: question.options[1].id.clone(),
-				label: "Updated B".into(),
+				label: Some("Updated B".into()),
 				image_url: None,
 				is_correct: true,
 				points: Some(20),

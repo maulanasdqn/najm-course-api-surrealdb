@@ -5,8 +5,8 @@ use surrealdb::sql::Thing;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct QuestionsSchema {
 	pub id: Thing,
-	pub question: String,
-	pub discussion: String,
+	pub question: Option<String>,
+	pub discussion: Option<String>,
 	pub question_image_url: Option<String>,
 	pub discussion_image_url: Option<String>,
 	pub options: Vec<Thing>,
@@ -18,8 +18,8 @@ pub struct QuestionsSchema {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct QuestionsDetailSchema {
 	pub id: Thing,
-	pub question: String,
-	pub discussion: String,
+	pub question: Option<String>,
+	pub discussion: Option<String>,
 	pub question_image_url: Option<String>,
 	pub discussion_image_url: Option<String>,
 	pub options: Vec<Option<OptionsSchema>>,

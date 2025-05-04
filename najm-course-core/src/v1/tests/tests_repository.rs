@@ -104,7 +104,7 @@ impl<'a> TestsRepository<'a> {
 				};
 				option_items.push(OptionsItemDto {
 					id,
-					label: opt.label,
+					label: opt.label.unwrap_or("".into()),
 					image_url: opt.image_url,
 					is_correct: None,
 					points: None,
@@ -118,8 +118,8 @@ impl<'a> TestsRepository<'a> {
 					surrealdb::sql::Id::String(s) => s.clone(),
 					_ => "".to_string(),
 				},
-				question,
-				discussion,
+				question: question.unwrap_or("".into()),
+				discussion: discussion.unwrap_or("".into()),
 				question_image_url,
 				discussion_image_url,
 				options: option_items,
@@ -179,7 +179,7 @@ impl<'a> TestsRepository<'a> {
 				};
 				option_items.push(OptionsItemDto {
 					id,
-					label: opt.label,
+					label: opt.label.unwrap_or("".into()),
 					image_url: opt.image_url,
 					is_correct: None,
 					points: None,
@@ -193,8 +193,8 @@ impl<'a> TestsRepository<'a> {
 					surrealdb::sql::Id::String(s) => s.clone(),
 					_ => "".to_string(),
 				},
-				question,
-				discussion,
+				question: question.unwrap_or("".into()),
+				discussion: discussion.unwrap_or("".into()),
 				question_image_url,
 				discussion_image_url,
 				options: option_items,
@@ -225,14 +225,8 @@ impl<'a> TestsRepository<'a> {
 		let test_id = Uuid::new_v4().to_string();
 		let mut question_things = Vec::new();
 		for question in &payload.questions {
-			if question.question.trim().is_empty() {
-				bail!("Question text cannot be empty");
-			}
 			if question.options.is_empty() {
 				bail!("Each question must have at least one option");
-			}
-			if question.options.iter().any(|o| o.label.trim().is_empty()) {
-				bail!("Each option must have a non-empty label");
 			}
 			let question_id = Uuid::new_v4().to_string();
 			let question_thing =
