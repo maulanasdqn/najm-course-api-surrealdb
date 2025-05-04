@@ -98,7 +98,7 @@ impl<'a> AnswersRepository<'a> {
 			});
 		}
 
-		let test_response = test.test;
+		let test_response = test.clone().test;
 		let mut score = 0;
 
 		if session.category == "Akademik" {
@@ -106,12 +106,17 @@ impl<'a> AnswersRepository<'a> {
 				.iter()
 				.filter(|q| q.options.iter().any(|o| o.is_user_selected && o.is_correct))
 				.count();
-
 			let raw_score = correct_count as f64 * test.multiplier as f64;
-			score = (test.weight as f64 / 100.0 * raw_score).round() as i32;
+			score = (test.weight as f64 * raw_score).round() as i32;
 		}
 
 		if session.category == "Psikologi" {
+			let test_name = test.clone().test.name.to_lowercase();
+
+			let is_kepribadian = test_name.contains("kepribadian");
+			let is_kecerdasan = test_name.contains("kecerdasan");
+			let is_kecermatan = test_name.contains("kecermatan");
+
 			let total_points: i32 = questions_dto
 				.iter()
 				.flat_map(|q| &q.options)
@@ -119,7 +124,17 @@ impl<'a> AnswersRepository<'a> {
 				.map(|o| o.points.unwrap_or(0))
 				.sum();
 
-			score = ((total_points as f64 / 500.0) * 100.0).round() as i32;
+			if is_kepribadian {
+				score = ((total_points as f64) * 100.0 / 500.0).round() as i32;
+			}
+
+			if is_kecerdasan {
+				score = total_points;
+			}
+
+			if is_kecermatan {
+				// TODO: Implement scoring logic for kecermatan
+			}
 		}
 
 		Ok(TestsItemAnswersDto {

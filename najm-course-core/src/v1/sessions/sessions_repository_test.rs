@@ -31,6 +31,7 @@ async fn test_create_and_get_session() -> Result<()> {
 		name: "Tryout Test".to_string(),
 		category: "Saintek".to_string(),
 		description: "Mock tryout".to_string(),
+		is_active: true,
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
 			test_id: test_id.to_string(),
@@ -56,6 +57,7 @@ async fn test_update_session() -> Result<()> {
 		name: "Tryout Update".to_string(),
 		category: "Soshum".to_string(),
 		description: "Update test".to_string(),
+		is_active: true,
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
 			test_id: "mock_test_2".to_string(),
@@ -67,7 +69,6 @@ async fn test_update_session() -> Result<()> {
 	};
 	let session_id = repo.query_create_session(payload).await?;
 	let update_payload = SessionsUpdateRequestDto {
-		id: session_id.clone(),
 		name: "Updated Name".to_string(),
 		category: "Saintek".to_string(),
 		description: "Updated description".to_string(),
@@ -80,7 +81,6 @@ async fn test_update_session() -> Result<()> {
 			end_date: "2025-02-15T00:00:00Z".to_string(),
 		}],
 		is_active: true,
-		is_deleted: false,
 	};
 	let result = repo
 		.query_update_session(session_id.clone(), update_payload)
@@ -96,6 +96,7 @@ async fn test_delete_session() -> Result<()> {
 	let payload = SessionsCreateRequestDto {
 		name: "To Be Deleted".to_string(),
 		category: "Campuran".to_string(),
+		is_active: true,
 		description: "For deletion test".to_string(),
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
@@ -120,6 +121,7 @@ async fn test_create_session_with_empty_tests_should_fail() {
 		name: "Empty Tests".to_string(),
 		category: "Kategori".to_string(),
 		description: "No tests".to_string(),
+		is_active: true,
 		student_type: "SMA".to_string(),
 		tests: vec![], // ❌
 	};
@@ -133,7 +135,6 @@ async fn test_update_non_existing_session_should_fail() {
 	let state = create_mock_app_state().await;
 	let repo = SessionsRepository::new(&state);
 	let update_payload = SessionsUpdateRequestDto {
-		id: "non_existing_id".to_string(),
 		name: "Should Fail".into(),
 		category: "Saintek".into(),
 		description: "Update should fail".into(),
@@ -146,7 +147,6 @@ async fn test_update_non_existing_session_should_fail() {
 			end_date: "2025-01-10T00:00:00Z".into(),
 		}],
 		is_active: true,
-		is_deleted: false,
 	};
 	let result = repo
 		.query_update_session("non_existing_id".into(), update_payload)
@@ -162,6 +162,7 @@ async fn test_create_session_with_invalid_test_ref_should_fail() {
 	let payload = SessionsCreateRequestDto {
 		name: "Invalid Test Ref".to_string(),
 		category: "Saintek".to_string(),
+		is_active: true,
 		description: "Non-existing test ref".to_string(),
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
@@ -197,6 +198,7 @@ async fn test_update_session_with_empty_tests_should_fail() {
 	let payload = SessionsCreateRequestDto {
 		name: "To Update".to_string(),
 		category: "Campuran".to_string(),
+		is_active: true,
 		description: "To test update fail".to_string(),
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
@@ -209,17 +211,15 @@ async fn test_update_session_with_empty_tests_should_fail() {
 	};
 	let session_id = repo.query_create_session(payload).await.unwrap();
 	let update_payload = SessionsUpdateRequestDto {
-		id: session_id,
 		name: "Failing update".to_string(),
 		category: "X".to_string(),
 		description: "Should fail".to_string(),
 		student_type: "SMA".to_string(),
 		tests: vec![], // ❌ kosong
 		is_active: true,
-		is_deleted: false,
 	};
 	let result = repo
-		.query_update_session(update_payload.id.clone(), update_payload)
+		.query_update_session(session_id.clone(), update_payload)
 		.await;
 	assert!(result.is_err());
 	assert!(result
@@ -260,6 +260,7 @@ async fn test_delete_session_twice_should_fail() -> Result<()> {
 		name: "Del Twice".to_string(),
 		category: "Test".to_string(),
 		description: "Double delete".to_string(),
+		is_active: true,
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
 			test_id: test_id.to_string(),

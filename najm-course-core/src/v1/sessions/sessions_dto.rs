@@ -33,8 +33,11 @@ pub struct SessionsCreateRequestDto {
 	#[schema(example = "Simulasi tryout saintek untuk persiapan UTBK 2025")]
 	pub description: String,
 
-	#[schema(example = "SMA")]
+	#[schema(example = "Akademik")]
 	pub student_type: String,
+
+	#[schema(example = true)]
+	pub is_active: bool,
 
 	#[schema(value_type = Vec<TestSessionsDto>)]
 	pub tests: Vec<TestSessionsDto>,
@@ -42,9 +45,6 @@ pub struct SessionsCreateRequestDto {
 
 #[derive(Clone, Debug, Serialize, Deserialize, Validate, ToSchema)]
 pub struct SessionsUpdateRequestDto {
-	#[schema(example = "session:xyz789")]
-	pub id: String,
-
 	#[schema(example = "Tryout Saintek 2025 - Update")]
 	pub name: String,
 
@@ -62,9 +62,6 @@ pub struct SessionsUpdateRequestDto {
 
 	#[schema(example = true)]
 	pub is_active: bool,
-
-	#[schema(example = false)]
-	pub is_deleted: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -85,7 +82,6 @@ pub struct SessionsResponseDto {
 	pub student_type: String,
 	pub tests_count: u32,
 	pub is_active: bool,
-	pub is_deleted: bool,
 	pub created_at: String,
 	pub updated_at: String,
 }
@@ -99,7 +95,6 @@ pub struct SessionsDetailResponseDto {
 	pub student_type: String,
 	pub tests: Vec<TestSessionsItemDto>,
 	pub is_active: bool,
-	pub is_deleted: bool,
 	pub created_at: String,
 	pub updated_at: String,
 }
@@ -173,7 +168,6 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 			student_type: value.student_type,
 			tests,
 			is_active: value.is_active,
-			is_deleted: value.is_deleted,
 			created_at: value.created_at,
 			updated_at: value.updated_at,
 		}
@@ -190,7 +184,6 @@ impl From<SessionsSchema> for SessionsResponseDto {
 			student_type: value.student_type,
 			tests_count: value.tests.len() as u32,
 			is_active: value.is_active,
-			is_deleted: value.is_deleted,
 			created_at: value.created_at,
 			updated_at: value.updated_at,
 		}

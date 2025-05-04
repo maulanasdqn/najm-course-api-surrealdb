@@ -55,10 +55,6 @@ pub struct UsersCreateRequestDto {
 pub struct UsersUpdateRequestDto {
 	#[validate(email(message = "Email not valid"))]
 	pub email: Option<String>,
-	#[validate(length(
-		min = 8,
-		message = "Password must have at least 8 characters"
-	))]
 	#[validate(length(min = 2, message = "Fullname at least have 2 character"))]
 	pub fullname: Option<String>,
 	#[validate(length(min = 1, message = "Student type is required"))]
@@ -128,6 +124,8 @@ pub struct UsersDetailItemDto {
 	pub religion: Option<String>,
 	pub gender: Option<String>,
 	pub birthdate: Option<String>,
+	pub created_at: String,
+	pub updated_at: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -142,6 +140,8 @@ pub struct UsersListItemDto {
 	pub referral_code: Option<String>,
 	pub student_type: String,
 	pub is_active: bool,
+	pub created_at: String,
+	pub updated_at: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -156,6 +156,8 @@ pub struct UsersListItemDtoRaw {
 	pub referral_code: Option<String>,
 	pub student_type: String,
 	pub is_active: bool,
+	pub created_at: String,
+	pub updated_at: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

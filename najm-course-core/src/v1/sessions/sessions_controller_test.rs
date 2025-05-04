@@ -21,6 +21,7 @@ fn generate_payload(name: &str) -> SessionsCreateRequestDto {
 	SessionsCreateRequestDto {
 		name: name.to_string(),
 		category: "Saintek".into(),
+		is_active: true,
 		description: "Tryout Description".into(),
 		student_type: "SMA".into(),
 		tests: vec![TestSessionsDto {
@@ -101,7 +102,6 @@ async fn test_update_session_should_return_200() {
 	let payload = generate_payload("To Update");
 	let id = repo.query_create_session(payload).await.unwrap();
 	let update = SessionsUpdateRequestDto {
-		id: id.clone(),
 		name: "Updated Session".into(),
 		category: "Soshum".into(),
 		description: "Updated Description".into(),
@@ -114,7 +114,6 @@ async fn test_update_session_should_return_200() {
 			end_date: "2025-02-10T00:00:00Z".into(),
 		}],
 		is_active: true,
-		is_deleted: false,
 	};
 	let server = create_test_app(state);
 	let res = authorized(

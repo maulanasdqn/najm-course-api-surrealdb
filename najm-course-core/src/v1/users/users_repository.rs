@@ -49,7 +49,6 @@ impl<'a> UsersRepository<'a> {
 		let limit = meta.per_page.unwrap_or(10);
 		let page = meta.page.unwrap_or(1);
 
-		// Validate pagination parameters explicitly
 		if page < 1 || limit < 1 {
 			return Err(anyhow!("Invalid pagination parameters"));
 		}
@@ -73,7 +72,9 @@ impl<'a> UsersRepository<'a> {
 				identity_number,
 				religion,
 				gender,
-				birthdate
+				birthdate,
+				created_at,
+				updated_at
 			FROM {}
 			{}
 			LIMIT {} START {}
@@ -108,6 +109,8 @@ impl<'a> UsersRepository<'a> {
 				student_type: user.student_type,
 				is_active: user.is_active,
 				role: user.role.unwrap_or_else(|| "-".into()),
+				created_at: user.created_at,
+				updated_at: user.updated_at,
 			})
 			.collect::<Vec<_>>();
 

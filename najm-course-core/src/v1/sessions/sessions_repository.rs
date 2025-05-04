@@ -106,7 +106,7 @@ impl<'a> SessionsRepository<'a> {
 			description: payload.description,
 			student_type: payload.student_type,
 			tests,
-			is_active: true,
+			is_active: payload.is_active,
 			is_deleted: false,
 			created_at: now.clone(),
 			updated_at: now,
@@ -151,7 +151,7 @@ impl<'a> SessionsRepository<'a> {
 			student_type: data.student_type,
 			tests,
 			is_active: data.is_active,
-			is_deleted: data.is_deleted,
+			is_deleted: false,
 			created_at: existing.created_at,
 			updated_at: get_iso_date(),
 		};
