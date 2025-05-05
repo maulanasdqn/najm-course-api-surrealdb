@@ -106,8 +106,8 @@ impl<'a> TestsRepository<'a> {
 					id,
 					label: opt.label.unwrap_or("".into()),
 					image_url: opt.image_url,
-					is_correct: None,
-					points: None,
+					is_correct: Some(opt.is_correct),
+					points: opt.points,
 					created_at: opt.created_at,
 					updated_at: opt.updated_at,
 				});
