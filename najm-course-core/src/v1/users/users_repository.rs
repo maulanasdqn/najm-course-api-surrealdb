@@ -286,7 +286,7 @@ impl<'a> UsersRepository<'a> {
 			birthdate: data.birthdate.or(existing.birthdate),
 			avatar: data.avatar.or(existing.avatar),
 			is_profile_completed: data.is_profile_completed,
-			role: if data.role.id.to_raw().is_empty() {
+			role: if data.role.id.to_raw() == existing.role.id {
 				make_thing("app_roles", &existing.role.id)
 			} else {
 				data.role.clone()
