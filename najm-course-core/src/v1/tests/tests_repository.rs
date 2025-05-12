@@ -299,16 +299,20 @@ impl<'a> TestsRepository<'a> {
 		if existing.questions.is_empty() {
 			bail!("Test has no questions");
 		}
+
 		let mut question_things = Vec::new();
+
 		for question in &payload.questions {
 			let question_id = question.id.clone();
 			let question_thing =
 				make_thing(&ResourceEnum::Questions.to_string(), &question_id);
+
 			let mut option_things = Vec::new();
 			for option in &question.options {
 				let option_id = option.id.clone();
 				let option_thing =
 					make_thing(&ResourceEnum::Options.to_string(), &option_id);
+
 				let option_schema = OptionsSchema {
 					id: option_thing.clone(),
 					label: option.label.clone(),
@@ -319,12 +323,28 @@ impl<'a> TestsRepository<'a> {
 					created_at: get_iso_date(),
 					updated_at: get_iso_date(),
 				};
-				let _: Option<OptionsSchema> = db
-					.update(get_id(&option_thing)?)
-					.content(option_schema)
-					.await?;
+
+				let existing_option: Option<OptionsSchema> =
+					db.select(get_id(&option_thing)?).await.ok().flatten();
+
+				if existing_option.is_some() {
+					let _: Option<OptionsSchema> = db
+						.update(get_id(&option_thing)?)
+						.content(option_schema)
+						.await?;
+				} else {
+					let _: Option<OptionsSchema> = db
+						.create((
+							ResourceEnum::Options.to_string(),
+							option_thing.clone().id.to_raw(),
+						))
+						.content(option_schema)
+						.await?;
+				}
+
 				option_things.push(option_thing);
 			}
+
 			let question_schema = QuestionsSchema {
 				id: question_thing.clone(),
 				question: question.question.clone(),
@@ -336,12 +356,28 @@ impl<'a> TestsRepository<'a> {
 				created_at: get_iso_date(),
 				updated_at: get_iso_date(),
 			};
-			let _: Option<QuestionsSchema> = db
-				.update(get_id(&question_thing)?)
-				.content(question_schema)
-				.await?;
+
+			let existing_question: Option<QuestionsSchema> =
+				db.select(get_id(&question_thing)?).await.ok().flatten();
+
+			if existing_question.is_some() {
+				let _: Option<QuestionsSchema> = db
+					.update(get_id(&question_thing)?)
+					.content(question_schema)
+					.await?;
+			} else {
+				let _: Option<QuestionsSchema> = db
+					.create((
+						ResourceEnum::Questions.to_string(),
+						question_thing.clone().id.to_raw(),
+					))
+					.content(question_schema)
+					.await?;
+			}
+
 			question_things.push(question_thing);
 		}
+
 		let updated_test = TestsSchema {
 			id: test_thing_id.clone(),
 			name: payload.name.clone(),
@@ -350,10 +386,12 @@ impl<'a> TestsRepository<'a> {
 			created_at: existing.created_at,
 			updated_at: get_iso_date(),
 		};
+
 		let _: Option<TestsSchema> = db
 			.update(get_id(&test_thing_id)?)
 			.content(updated_test)
 			.await?;
+
 		Ok("Success update test".into())
 	}
 

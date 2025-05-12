@@ -10,6 +10,7 @@ pub enum ResourceEnum {
 	Questions,
 	Users,
 	Roles,
+	Flags,
 	Answers,
 	Permissions,
 }
@@ -18,6 +19,7 @@ impl fmt::Display for ResourceEnum {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let str = match self {
 			ResourceEnum::Users => "app_users",
+			ResourceEnum::Flags => "app_flags",
 			ResourceEnum::Answers => "app_answers",
 			ResourceEnum::UsersCache => "app_users_cache",
 			ResourceEnum::OtpCache => "app_otp_cache",

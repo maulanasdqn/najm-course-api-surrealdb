@@ -1,3 +1,4 @@
+use super::{PermissionsItemDto, PermissionsRequestDto};
 use crate::{
 	common_response, make_thing, success_list_response, success_response,
 	validate_request, AppState, MetaRequestDto, PermissionsRepository,
@@ -5,8 +6,6 @@ use crate::{
 };
 use axum::http::StatusCode;
 use axum::response::Response;
-
-use super::{PermissionsItemDto, PermissionsRequestDto};
 
 pub struct PermissionsService;
 

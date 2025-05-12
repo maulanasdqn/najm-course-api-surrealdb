@@ -3,6 +3,7 @@ use axum::{middleware::from_fn, Router};
 pub mod answers;
 pub mod auth;
 pub mod docs;
+pub mod flags;
 pub mod options;
 pub mod permissions;
 pub mod questions;
