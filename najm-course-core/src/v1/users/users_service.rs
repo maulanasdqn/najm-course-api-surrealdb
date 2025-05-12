@@ -144,7 +144,11 @@ impl UsersService {
 			}
 		};
 		let user_id = make_thing(&ResourceEnum::Users.to_string(), &id);
-		let role_id = make_thing(&ResourceEnum::Roles.to_string(), "");
+		let role_id = make_thing(
+			&ResourceEnum::Roles.to_string(),
+			&user.role_id.unwrap_or(existing_user.role.id),
+		);
+
 		let updated_user = UsersSchema {
 			id: user_id,
 			fullname: user.fullname.unwrap_or(existing_user.fullname),
@@ -186,7 +190,10 @@ impl UsersService {
 		let user_data = repo.query_user_by_email(email).await.unwrap();
 		let user_id =
 			make_thing(&ResourceEnum::Users.to_string(), &user_data.id.id.to_raw());
-		let role_id = make_thing(&ResourceEnum::Roles.to_string(), "");
+		let role_id = make_thing(
+			&ResourceEnum::Roles.to_string(),
+			&user.role_id.unwrap_or(existing_user.role.id.id.to_raw()),
+		);
 		let updated_user = UsersSchema {
 			id: user_id,
 			fullname: user.fullname.unwrap_or(existing_user.fullname),
