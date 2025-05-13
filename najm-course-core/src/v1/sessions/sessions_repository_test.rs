@@ -32,6 +32,7 @@ async fn test_create_and_get_session() -> Result<()> {
 		category: "Saintek".to_string(),
 		description: "Mock tryout".to_string(),
 		is_active: true,
+		shuffle: true,
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
 			test_id: test_id.to_string(),
@@ -58,6 +59,7 @@ async fn test_update_session() -> Result<()> {
 		category: "Soshum".to_string(),
 		description: "Update test".to_string(),
 		is_active: true,
+		shuffle: true,
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
 			test_id: "mock_test_2".to_string(),
@@ -73,6 +75,7 @@ async fn test_update_session() -> Result<()> {
 		category: "Saintek".to_string(),
 		description: "Updated description".to_string(),
 		student_type: "SMA".to_string(),
+		shuffle: true,
 		tests: vec![TestSessionsDto {
 			test_id: "mock_test_2".to_string(),
 			weight: 2.5,
@@ -97,6 +100,7 @@ async fn test_delete_session() -> Result<()> {
 		name: "To Be Deleted".to_string(),
 		category: "Campuran".to_string(),
 		is_active: true,
+		shuffle: true,
 		description: "For deletion test".to_string(),
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
@@ -122,6 +126,7 @@ async fn test_create_session_with_empty_tests_should_fail() {
 		category: "Kategori".to_string(),
 		description: "No tests".to_string(),
 		is_active: true,
+		shuffle: true,
 		student_type: "SMA".to_string(),
 		tests: vec![], // ❌
 	};
@@ -139,6 +144,7 @@ async fn test_update_non_existing_session_should_fail() {
 		category: "Saintek".into(),
 		description: "Update should fail".into(),
 		student_type: "SMA".into(),
+		shuffle: true,
 		tests: vec![TestSessionsDto {
 			test_id: "mock_test_x".into(),
 			weight: 2.7,
@@ -163,6 +169,7 @@ async fn test_create_session_with_invalid_test_ref_should_fail() {
 		name: "Invalid Test Ref".to_string(),
 		category: "Saintek".to_string(),
 		is_active: true,
+		shuffle: true,
 		description: "Non-existing test ref".to_string(),
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
@@ -199,6 +206,7 @@ async fn test_update_session_with_empty_tests_should_fail() {
 		name: "To Update".to_string(),
 		category: "Campuran".to_string(),
 		is_active: true,
+		shuffle: true,
 		description: "To test update fail".to_string(),
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
@@ -213,6 +221,7 @@ async fn test_update_session_with_empty_tests_should_fail() {
 	let update_payload = SessionsUpdateRequestDto {
 		name: "Failing update".to_string(),
 		category: "X".to_string(),
+		shuffle: true,
 		description: "Should fail".to_string(),
 		student_type: "SMA".to_string(),
 		tests: vec![], // ❌ kosong
@@ -261,6 +270,7 @@ async fn test_delete_session_twice_should_fail() -> Result<()> {
 		category: "Test".to_string(),
 		description: "Double delete".to_string(),
 		is_active: true,
+		shuffle: true,
 		student_type: "SMA".to_string(),
 		tests: vec![TestSessionsDto {
 			test_id: test_id.to_string(),

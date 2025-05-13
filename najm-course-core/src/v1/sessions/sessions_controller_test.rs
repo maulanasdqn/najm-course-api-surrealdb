@@ -22,6 +22,7 @@ fn generate_payload(name: &str) -> SessionsCreateRequestDto {
 		name: name.to_string(),
 		category: "Saintek".into(),
 		is_active: true,
+		shuffle: true,
 		description: "Tryout Description".into(),
 		student_type: "SMA".into(),
 		tests: vec![TestSessionsDto {
@@ -105,6 +106,7 @@ async fn test_update_session_should_return_200() {
 		name: "Updated Session".into(),
 		category: "Soshum".into(),
 		description: "Updated Description".into(),
+		shuffle: true,
 		student_type: "SMA".into(),
 		tests: vec![TestSessionsDto {
 			test_id: "mock_test_update".into(),

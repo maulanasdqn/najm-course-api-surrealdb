@@ -24,6 +24,7 @@ pub struct TestSessionsDetailSchema {
 pub struct SessionsSchema {
 	pub id: Thing,
 	pub name: String,
+	pub shuffle: bool,
 	pub tests: Vec<TestSessionsSchema>,
 	pub category: String,
 	pub description: String,
@@ -43,6 +44,7 @@ pub struct SessionsDetailSchema {
 	pub description: String,
 	pub student_type: String,
 	pub is_active: bool,
+	pub shuffle: bool,
 	pub is_deleted: bool,
 	pub created_at: String,
 	pub updated_at: String,

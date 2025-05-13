@@ -1,5 +1,6 @@
 use super::{SessionsDetailSchema, SessionsSchema};
 use crate::{OptionsItemDto, QuestionsItemDto, TestsItemDto};
+use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
@@ -39,6 +40,9 @@ pub struct SessionsCreateRequestDto {
 	#[schema(example = true)]
 	pub is_active: bool,
 
+	#[schema(example = true)]
+	pub shuffle: bool,
+
 	#[schema(value_type = Vec<TestSessionsDto>)]
 	pub tests: Vec<TestSessionsDto>,
 }
@@ -62,6 +66,9 @@ pub struct SessionsUpdateRequestDto {
 
 	#[schema(example = true)]
 	pub is_active: bool,
+
+	#[schema(example = true)]
+	pub shuffle: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -95,19 +102,22 @@ pub struct SessionsDetailResponseDto {
 	pub student_type: String,
 	pub tests: Vec<TestSessionsItemDto>,
 	pub is_active: bool,
+	pub shuffle: bool,
 	pub created_at: String,
 	pub updated_at: String,
 }
 
 impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 	fn from(value: SessionsDetailSchema) -> Self {
+		let mut rng = rand::rng();
+
 		let tests: Vec<TestSessionsItemDto> = value
 			.tests
 			.into_iter()
 			.map(|t| {
 				let test = t.test;
 
-				let questions = test
+				let mut questions: Vec<QuestionsItemDto> = test
 					.questions
 					.into_iter()
 					.filter_map(|q_opt| {
@@ -142,6 +152,10 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 					})
 					.collect();
 
+				if value.shuffle {
+					questions.shuffle(&mut rng);
+				}
+
 				let test_item = TestsItemDto {
 					id: test.id.id.to_raw(),
 					name: test.name,
@@ -168,6 +182,7 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 			student_type: value.student_type,
 			tests,
 			is_active: value.is_active,
+			shuffle: value.shuffle,
 			created_at: value.created_at,
 			updated_at: value.updated_at,
 		}

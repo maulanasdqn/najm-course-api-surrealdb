@@ -6,14 +6,17 @@ use surrealdb::{engine::remote::ws::Ws, opt::auth::Root, Surreal};
 async fn main() -> Result<(), Box<dyn Error>> {
 	let env = Env::new();
 	let db = Surreal::new::<Ws>(env.surrealdb_url).await?;
+
 	db.signin(Root {
 		username: &env.surrealdb_username,
 		password: &env.surrealdb_password,
 	})
 	.await?;
+
 	db.use_ns(env.surrealdb_namespace)
 		.use_db(env.surrealdb_dbname)
 		.await?;
+
 	let admin_permissions = vec![
 		"023e2dfe-93c3-4008-94a8-b5dff403f73b",
 		"0269ed71-0ae0-4c43-ad29-e3d861d8f9a0",
@@ -43,9 +46,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
 		"f768aff5-8011-4439-b901-d8793c60d841",
 		"76046fc3-ea45-43de-9e32-7dff9622019e",
 		"05940747-2c2f-4ee2-a280-72557c508686",
+		"e300b8d9-7b9e-4f69-b624-68e3406e3101",
+		"38fa62d3-3a2a-4124-a8a6-d5b3349d6bc9",
+		"f15dfc31-4066-426e-9df1-ea7ffb9be497",
+		"6b37818d-f2ae-41e0-b378-13193760dc57",
+		"67e452c6-4027-4b5c-b95d-8168a4743a90",
+		"04f798c9-b0eb-4f70-98dc-50ff4888aa7f",
+		"760d640e-5eec-4f0e-bf68-d9b14d490b6b",
+		"c39f6830-91f6-4f30-b0e7-31c1f0c62f12",
+		"33f7f230-f55d-4e4b-9616-d3b0d6a63e71",
+		"0c152b00-02fa-4b86-a449-3f2c0aef3022",
+		"e6a3f98f-4e7c-4782-91e2-17b0ce99464c",
+		"59f3470d-e705-4b1a-bd3c-0c3735ff9896",
+		"1b59a1b0-1e91-4b6d-86d3-d1a79044bc0d",
+		"8367cc33-07b4-43c5-9992-2e00202c55df",
+		"a401b265-b775-4a6c-9ed1-1806fdde4060",
+		"d08f2e9c-49b4-4c09-b9d5-6a2746fbd50e",
 	];
 
-	let user_permissions = vec![
+	let student_permissions = vec![
 		"319ee593-ff0a-4f29-bbaf-9feb3174a3a6",
 		"cab6aff5-e9c6-4ed3-afe9-93ef927e1f92",
 		"76046fc3-ea45-43de-9e32-7dff9622019e",
@@ -61,7 +80,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 		.map(|perm_id| make_thing("app_permissions", perm_id))
 		.collect();
 
-	let permission_refs_student: Vec<_> = user_permissions
+	let permission_refs_student: Vec<_> = student_permissions
 		.into_iter()
 		.map(|perm_id| make_thing("app_permissions", perm_id))
 		.collect();
@@ -77,6 +96,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 		.bind(("permissions", permission_refs_student))
 		.bind(("updated_at", get_iso_date()))
 		.await?;
-	println!("✅ Semua permissions berhasil ditambahkan ke masing-masing role!");
+
+	println!("✅ All permissions successfully added to each role");
+
 	Ok(())
 }

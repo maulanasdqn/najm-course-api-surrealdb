@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 	let roles = vec![
 		(
 			"50133429-f4b1-4249-9f97-7b86e6ee9d86",
-			"Staf",
+			"Staff",
 			Some("2025-02-24T16:52:27.630453+00"),
 			Some("2025-02-24T16:52:27.630461+00"),
 		),
@@ -77,6 +77,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 			.await?;
 		println!("✅ Inserted role: {}", name);
 	}
-	println!("✅ Semua role berhasil disimpan ke SurrealDB!");
+	println!("✅ All roles successfully seeded");
 	Ok(())
 }
