@@ -30,11 +30,13 @@ pub async fn apps(
 		"production" => {
 			vec![
 				"https://cat.najmcourse.com",
+				"https://v2.cat.najmcourse.com",
 				"https://backoffice.najmcourse.com",
 			]
 		}
 		_ => vec![
 			"http://localhost:3000",
+			"https://v2.cat.najmcourse.com",
 			"https://cat.najmcourse.com",
 			"https://backoffice.najmcourse.com",
 		],
