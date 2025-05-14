@@ -26,7 +26,7 @@ pub async fn apps(
 	};
 	let env = Env::new();
 	let cors_origins = match env.rust_env.as_str() {
-		"development" => vec!["http://localhost:3000"],
+		"development" => vec!["http://localhost:3000", "http://localhost:3002"],
 		"production" => {
 			vec![
 				"https://cat.najmcourse.com",
@@ -36,6 +36,7 @@ pub async fn apps(
 		}
 		_ => vec![
 			"http://localhost:3000",
+			"http://localhost:3002",
 			"https://v2.cat.najmcourse.com",
 			"https://cat.najmcourse.com",
 			"https://backoffice.najmcourse.com",

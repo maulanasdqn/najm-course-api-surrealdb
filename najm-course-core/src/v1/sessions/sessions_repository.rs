@@ -95,6 +95,7 @@ impl<'a> SessionsRepository<'a> {
 				test: make_thing(&ResourceEnum::Tests.to_string(), &t.test_id),
 				weight: t.weight,
 				multiplier: t.multiplier,
+				shuffle: t.shuffle,
 				start_date: t.start_date,
 				end_date: t.end_date,
 			})
@@ -106,7 +107,6 @@ impl<'a> SessionsRepository<'a> {
 			description: payload.description,
 			student_type: payload.student_type,
 			tests,
-			shuffle: payload.shuffle,
 			is_active: payload.is_active,
 			is_deleted: false,
 			created_at: now.clone(),
@@ -139,6 +139,7 @@ impl<'a> SessionsRepository<'a> {
 			.map(|t| TestSessionsSchema {
 				test: make_thing(&ResourceEnum::Tests.to_string(), &t.test_id),
 				weight: t.weight,
+				shuffle: t.shuffle,
 				multiplier: t.multiplier,
 				start_date: t.start_date,
 				end_date: t.end_date,
@@ -152,7 +153,6 @@ impl<'a> SessionsRepository<'a> {
 			student_type: data.student_type,
 			tests,
 			is_active: data.is_active,
-			shuffle: data.shuffle,
 			is_deleted: false,
 			created_at: existing.created_at,
 			updated_at: get_iso_date(),

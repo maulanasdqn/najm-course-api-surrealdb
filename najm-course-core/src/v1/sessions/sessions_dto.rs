@@ -16,6 +16,9 @@ pub struct TestSessionsDto {
 	#[schema(example = 1.25)]
 	pub multiplier: f32,
 
+	#[schema(example = true)]
+	pub shuffle: bool,
+
 	#[schema(example = "2025-05-01T00:00:00Z")]
 	pub start_date: String,
 
@@ -40,9 +43,6 @@ pub struct SessionsCreateRequestDto {
 	#[schema(example = true)]
 	pub is_active: bool,
 
-	#[schema(example = true)]
-	pub shuffle: bool,
-
 	#[schema(value_type = Vec<TestSessionsDto>)]
 	pub tests: Vec<TestSessionsDto>,
 }
@@ -66,15 +66,13 @@ pub struct SessionsUpdateRequestDto {
 
 	#[schema(example = true)]
 	pub is_active: bool,
-
-	#[schema(example = true)]
-	pub shuffle: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct TestSessionsItemDto {
 	pub test: TestsItemDto,
 	pub weight: f32,
+	pub shuffle: bool,
 	pub multiplier: f32,
 	pub start_date: String,
 	pub end_date: String,
@@ -102,7 +100,6 @@ pub struct SessionsDetailResponseDto {
 	pub student_type: String,
 	pub tests: Vec<TestSessionsItemDto>,
 	pub is_active: bool,
-	pub shuffle: bool,
 	pub created_at: String,
 	pub updated_at: String,
 }
@@ -152,7 +149,7 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 					})
 					.collect();
 
-				if value.shuffle {
+				if t.shuffle {
 					questions.shuffle(&mut rng);
 				}
 
@@ -167,6 +164,7 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 				TestSessionsItemDto {
 					test: test_item,
 					weight: t.weight,
+					shuffle: t.shuffle,
 					multiplier: t.multiplier,
 					start_date: t.start_date,
 					end_date: t.end_date,
@@ -182,7 +180,6 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 			student_type: value.student_type,
 			tests,
 			is_active: value.is_active,
-			shuffle: value.shuffle,
 			created_at: value.created_at,
 			updated_at: value.updated_at,
 		}
